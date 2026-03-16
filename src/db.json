@@ -1,0 +1,30 @@
+{
+	"products": [
+	  {
+		"id": 1,
+		"name": "Смартфон Samsung Galaxy S23",
+		"price": 79990,
+		"category": "Смартфоны",
+		"imageUrl": "https://via.placeholder.com/150",
+		"description": "Флагманский смартфон с камерой 200 Мп",
+		"specifications": {
+		  "Процессор": "Snapdragon 8 Gen 2",
+		  "Память": "256 ГБ",
+		  "Экран": "6.1''"
+		}
+	  },
+	  {
+		"id": 2,
+		"name": "Смартфон Apple iPhone 15",
+		"price": 89990,
+		"category": "Смартфоны",
+		"imageUrl": "https://via.placeholder.com/150",
+		"description": "Смартфон с чипом A16 Bionic",
+		"specifications": {
+		  "Процессор": "Apple A16 Bionic",
+		  "Память": "128 ГБ",
+		  "Экран": "6.1''"
+		}
+	  }
+	]
+  }
