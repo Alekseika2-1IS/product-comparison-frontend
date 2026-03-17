@@ -1,12 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createProduct, updateProduct } from '../../services/api';
 
-// Компонент формы добавления/редактирования товара
-// Пропсы:
-// - productToEdit: объект товара для редактирования (null для добавления)
-// - onClose: функция закрытия формы
-// - onProductSaved: функция, вызываемая после успешного сохранения (передаёт сохранённый товар)
-
 const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
   // Состояние для основных полей формы
   const [formData, setFormData] = useState({
@@ -17,16 +11,16 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
     imageUrl: ''
   });
 
-  // Состояние для списка характеристик (массив объектов { name, value })
+  // Состояние для списка характеристик
   const [specs, setSpecs] = useState([{ name: '', value: '' }]);
 
-  // Состояние для процесса загрузки (отправки)
+  // Состояние для процесса загрузки
   const [loading, setLoading] = useState(false);
 
   // Состояние для сообщений об ошибках
   const [error, setError] = useState('');
 
-  // Если передан productToEdit (режим редактирования), заполняем форму при монтировании
+  // Если передан productToEdit, заполняем форму
   useEffect(() => {
     if (productToEdit) {
       setFormData({
@@ -37,13 +31,11 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
         imageUrl: productToEdit.imageUrl || ''
       });
 
-      // Преобразуем объект specifications в массив пар
       if (productToEdit.specifications) {
         const specsArray = Object.entries(productToEdit.specifications).map(([name, value]) => ({
           name,
           value
         }));
-        // Если массив не пуст, используем его, иначе оставляем одну пустую строку
         setSpecs(specsArray.length ? specsArray : [{ name: '', value: '' }]);
       } else {
         setSpecs([{ name: '', value: '' }]);
@@ -57,26 +49,26 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Обработчик изменения полей характеристик
+  // Обработчик изменения характеристик
   const handleSpecChange = (index, field, value) => {
     const updatedSpecs = [...specs];
     updatedSpecs[index][field] = value;
     setSpecs(updatedSpecs);
   };
 
-  // Добавить новую строку характеристики
+  // Добавить характеристику
   const addSpec = () => {
     setSpecs([...specs, { name: '', value: '' }]);
   };
 
-  // Удалить строку характеристики (если строк больше 1)
+  // Удалить характеристику
   const removeSpec = (index) => {
     if (specs.length > 1) {
       setSpecs(specs.filter((_, i) => i !== index));
     }
   };
 
-  // Валидация формы
+  // Валидация
   const validate = () => {
     if (!formData.name.trim()) return 'Название обязательно';
     if (!formData.price) return 'Цена обязательна';
@@ -94,7 +86,6 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
       return;
     }
 
-    // Преобразуем массив характеристик в объект (только заполненные)
     const specifications = {};
     specs.forEach(spec => {
       if (spec.name.trim() && spec.value.trim()) {
@@ -102,7 +93,6 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
       }
     });
 
-    // Формируем объект для отправки
     const productData = {
       ...formData,
       price: Number(formData.price),
@@ -115,16 +105,12 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
     try {
       let response;
       if (productToEdit) {
-        // Режим редактирования
         response = await updateProduct(productToEdit.id, productData);
       } else {
-        // Режим добавления
         response = await createProduct(productData);
       }
-
-      // Передаём сохранённый товар родителю (он может быть в response.data)
       onProductSaved(response.data);
-      onClose(); // Закрываем форму
+      onClose();
     } catch (err) {
       setError('Ошибка при сохранении товара. Проверьте подключение к серверу.');
       console.error(err);
@@ -168,7 +154,6 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
 
   return (
     <div style={modalOverlayStyle} onClick={onClose}>
-      {/* Останавливаем всплытие клика, чтобы клик по содержимому не закрывал форму */}
       <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
         <h2>{productToEdit ? 'Редактировать товар' : 'Добавить новый товар'}</h2>
         
@@ -245,7 +230,7 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
             <div key={index} style={{ display: 'flex', gap: '10px', marginBottom: '10px', alignItems: 'center' }}>
               <input
                 type="text"
-                placeholder="Название (например, Процессор)"
+                placeholder="Название"
                 value={spec.name}
                 onChange={(e) => handleSpecChange(index, 'name', e.target.value)}
                 style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
