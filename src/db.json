@@ -1,30 +1,42 @@
 {
-	"products": [
-	  {
-		"id": 1,
-		"name": "Смартфон Samsung Galaxy S23",
-		"price": 79990,
-		"category": "Смартфоны",
-		"imageUrl": "https://via.placeholder.com/150",
-		"description": "Флагманский смартфон с камерой 200 Мп",
-		"specifications": {
-		  "Процессор": "Snapdragon 8 Gen 2",
-		  "Память": "256 ГБ",
-		  "Экран": "6.1''"
-		}
-	  },
-	  {
-		"id": 2,
-		"name": "Смартфон Apple iPhone 15",
-		"price": 89990,
-		"category": "Смартфоны",
-		"imageUrl": "https://via.placeholder.com/150",
-		"description": "Смартфон с чипом A16 Bionic",
-		"specifications": {
-		  "Процессор": "Apple A16 Bionic",
-		  "Память": "128 ГБ",
-		  "Экран": "6.1''"
-		}
-	  }
-	]
-  }
+  "products": [
+    {
+      "name": "Смартфон Samsung Galaxy S23",
+      "description": "Флагманский смартфон с камерой 200 Мп",
+      "price": 79990,
+      "category": "Смартфоны",
+      "imageUrl": "https://img.mvideo.ru/Pdb/400301345b2.jpg",
+      "specifications": {
+        "Процессор": "Snapdragon 8 Gen 2",
+        "Память": "256 ГБ",
+        "Экран": "6.1''"
+      },
+      "id": "1"
+    },
+    {
+      "name": "Смартфон Apple iPhone 15",
+      "description": "Смартфон с чипом A16 Bionic",
+      "price": 89990,
+      "category": "Смартфоны",
+      "imageUrl": "https://img.etimg.com/thumb/msid-120834411,width-1200,height-630,imgsize-400111,overlay-economictimes/articleshow.jpg",
+      "specifications": {
+        "Процессор": "Apple A16 Bionic",
+        "Память": "128 ГБ",
+        "Экран": "6.1''"
+      },
+      "id": "2"
+    },
+    {
+      "id": "7298",
+      "name": "lexa4_mp3",
+      "description": "Они реализуют:\n\nПросмотр каталога с загрузкой с сервера.\n\nВыбор товаров для сравнения (до 3).\n\nПереход на страницу сравнения с передачей выбранных ID.\n\nДобавление, редактирование и удаление товаров (CRUD).\n\nМодальную форму с валидацией и динамическими характеристиками.\n\nОбработку ошибок и состояний загрузки.",
+      "price": 10000,
+      "category": "Смартфон",
+      "imageUrl": "https://i.pinimg.com/736x/5f/1d/a9/5f1da9ac8016fedf6dae08c4d45319ce.jpg",
+      "specifications": {
+        "Процесс": "23"
+      }
+    }
+  ],
+  "$schema": "./node_modules/json-server/schema.json"
+}
