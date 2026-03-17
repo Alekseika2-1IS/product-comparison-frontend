@@ -1,116 +1,175 @@
-// Импортируем необходимые хуки из React
 import { useEffect, useState } from 'react';
-// Хук useNavigate для программной навигации (перехода на другую страницу)
 import { useNavigate } from 'react-router-dom';
-// Импортируем функцию для получения списка товаров из API
-import { getProducts } from '../services/api';
-// Импортируем компонент карточки товара
+import { getProducts, deleteProduct } from '../services/api';
 import ProductCard from '../components/ProductCard/ProductCard';
+import ProductForm from '../components/ProductForm/ProductForm';
 
-// Компонент страницы каталога товаров
+// Главная страница каталога товаров
 const CatalogPage = () => {
-  // Состояние для хранения массива всех товаров, полученных с сервера
-  const [products, setProducts] = useState([]);
-  // Состояние для хранения идентификаторов товаров, выбранных для сравнения
-  const [selectedIds, setSelectedIds] = useState([]);
-  // Получаем функцию для навигации
+  const [products, setProducts] = useState([]);          // все товары
+  const [selectedIds, setSelectedIds] = useState([]);    // id выбранных для сравнения
+  const [showForm, setShowForm] = useState(false);       // показывать ли форму
+  const [editingProduct, setEditingProduct] = useState(null); // товар для редактирования (null = добавление)
   const navigate = useNavigate();
 
-  // Эффект, который выполняется один раз при монтировании компонента
+  // Загрузка товаров при монтировании компонента
   useEffect(() => {
-    // Асинхронная функция для загрузки товаров
-    const fetchProducts = async () => {
-      try {
-        // Отправляем GET-запрос к API и ждём ответ
-        const response = await getProducts();
-        // Сохраняем полученные данные в состояние products
-        setProducts(response.data);
-      } catch (error) {
-        // Если произошла ошибка, выводим её в консоль
-        console.error('Ошибка загрузки товаров:', error);
-      }
-    };
-    // Вызываем функцию загрузки
     fetchProducts();
-  }, []); // Пустой массив зависимостей гарантирует выполнение только при первой загрузке
+  }, []);
 
-  // Функция, которая вызывается при клике на чекбокс в карточке товара
+  const fetchProducts = async () => {
+    try {
+      const response = await getProducts();
+      setProducts(response.data);
+    } catch (error) {
+      console.error('Ошибка загрузки товаров:', error);
+      alert('Не удалось загрузить товары. Проверьте подключение к серверу.');
+    }
+  };
+
+  // Обработка выбора товара (чекбокс)
   const handleSelect = (id, isChecked) => {
     if (isChecked) {
-      // Если чекбокс установлен (товар выбран)
       if (selectedIds.length < 3) {
-        // Если выбрано меньше 3 товаров, добавляем новый id в массив
         setSelectedIds([...selectedIds, id]);
       } else {
-        // Если уже выбрано 3 товара, показываем предупреждение
         alert('Можно выбрать не более 3 товаров для сравнения');
       }
     } else {
-      // Если чекбокс снят (товар убран из выбора)
-      // Фильтруем массив, удаляя id этого товара
       setSelectedIds(selectedIds.filter(selectedId => selectedId !== id));
     }
   };
 
-  // Функция для перехода на страницу сравнения
+  // Переход на страницу сравнения
   const handleCompare = () => {
     if (selectedIds.length >= 2) {
-      // Если выбрано 2 или 3 товара, переходим на страницу сравнения
-      // Передаём массив выбранных id через state (доступен в location.state)
       navigate('/compare', { state: { selectedIds } });
     } else {
-      // Если выбрано меньше 2, показываем предупреждение
       alert('Выберите минимум 2 товара для сравнения');
     }
   };
 
-  // Функция для сброса всех выбранных товаров
+  // Сброс выбора
   const handleClear = () => {
     setSelectedIds([]);
   };
 
+  // Открыть форму добавления товара
+  const handleAddClick = () => {
+    setEditingProduct(null);   // явно указываем, что это добавление
+    setShowForm(true);
+  };
+
+  // Открыть форму редактирования товара
+  const handleEditClick = (product) => {
+    setEditingProduct(product);
+    setShowForm(true);
+  };
+
+  // Удалить товар
+  const handleDeleteClick = async (id) => {
+    if (window.confirm('Вы уверены, что хотите удалить этот товар?')) {
+      try {
+        await deleteProduct(id);
+        // Обновляем список товаров, удаляя удалённый
+        setProducts(products.filter(p => p.id !== id));
+        // Если удалённый товар был выбран, убираем его из selectedIds
+        setSelectedIds(selectedIds.filter(selectedId => selectedId !== id));
+      } catch (error) {
+        console.error('Ошибка удаления товара:', error);
+        alert('Не удалось удалить товар. Проверьте подключение к серверу.');
+      }
+    }
+  };
+
+  // Обработчик сохранения товара (после добавления или редактирования)
+  const handleProductSaved = (savedProduct) => {
+    if (editingProduct) {
+      // Редактирование: заменяем старый товар на обновлённый
+      setProducts(products.map(p => p.id === savedProduct.id ? savedProduct : p));
+    } else {
+      // Добавление: добавляем новый товар в список (json-server возвращает созданный объект с id)
+      setProducts([...products, savedProduct]);
+    }
+  };
+
   return (
-    <div>
-      {/* Заголовок страницы */}
+    <div style={{ padding: '20px' }}>
       <h1>Каталог товаров</h1>
       
-      {/* Блок с информацией о выбранных товарах и кнопками */}
-      <div style={{ marginBottom: '20px' }}>
-        {/* Отображаем количество выбранных товаров */}
-        <span>Выбрано: {selectedIds.length} товаров</span>
-        
-        {/* Кнопка "Сравнить" активна только когда выбрано минимум 2 товара */}
+      {/* Кнопка добавления товара */}
+      <button 
+        onClick={handleAddClick}
+        style={{
+          padding: '10px 20px',
+          marginBottom: '20px',
+          backgroundColor: '#4CAF50',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: '16px'
+        }}
+      >
+        + Добавить товар
+      </button>
+
+      {/* Панель управления сравнением */}
+      <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+        <span style={{ fontSize: '16px' }}>Выбрано: {selectedIds.length} товаров</span>
         <button 
           onClick={handleCompare} 
           disabled={selectedIds.length < 2}
-          style={{ marginLeft: '10px' }}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: selectedIds.length < 2 ? '#ccc' : '#2196F3',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: selectedIds.length < 2 ? 'not-allowed' : 'pointer'
+          }}
         >
           Сравнить ({selectedIds.length})
         </button>
-        
-        {/* Кнопка очистки выбора, показывается только если есть выбранные товары */}
         {selectedIds.length > 0 && (
           <button 
             onClick={handleClear}
-            style={{ marginLeft: '10px' }}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#f44336',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
           >
             Очистить выбор
           </button>
         )}
       </div>
 
-      {/* Контейнер для карточек товаров (flex-сетка) */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
-        {/* Проходим по массиву products и для каждого товара создаём карточку */}
+      {/* Сетка карточек товаров */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
         {products.map(product => (
           <ProductCard
-            key={product.id}                // Уникальный ключ для React
-            product={product}                 // Передаём объект товара в пропс product
-            onSelect={handleSelect}            // Передаём функцию обработки выбора
-            isSelected={selectedIds.includes(product.id)} // Проверяем, выбран ли этот товар
+            key={product.id}
+            product={product}
+            onSelect={handleSelect}
+            isSelected={selectedIds.includes(product.id)}
+            onEdit={handleEditClick}
+            onDelete={handleDeleteClick}
           />
         ))}
       </div>
+
+      {/* Модальное окно формы */}
+      {showForm && (
+        <ProductForm
+          productToEdit={editingProduct}
+          onClose={() => setShowForm(false)}
+          onProductSaved={handleProductSaved}
+        />
+      )}
     </div>
   );
 };
