@@ -36,15 +36,6 @@
       "specifications": {
         "Процесс": "23"
       }
-    },
-    {
-      "id": "54f1",
-      "name": "ываыва",
-      "description": "ываыва",
-      "price": 121312,
-      "category": "фывфыв",
-      "imageUrl": "",
-      "specifications": {}
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"
