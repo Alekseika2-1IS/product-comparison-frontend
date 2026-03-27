@@ -1,12 +1,11 @@
+import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import ProductCard from './ProductCard';
 
-// Мокаем функции-пропсы
 const mockOnSelect = jest.fn();
 const mockOnEdit = jest.fn();
 const mockOnDelete = jest.fn();
 
-// Тестовый товар
 const mockProduct = {
   id: 1,
   name: 'Тестовый товар',
@@ -16,7 +15,6 @@ const mockProduct = {
 
 describe('ProductCard', () => {
   beforeEach(() => {
-    // Очищаем моки перед каждым тестом
     jest.clearAllMocks();
   });
 
