@@ -1,3 +1,5 @@
+import React from 'react';
+
 const ProductCard = ({ product, onSelect, isSelected, onEdit, onDelete }) => {
   // Обработчик изменения чекбокса
   const handleCheckboxChange = (e) => {
