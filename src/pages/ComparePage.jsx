@@ -1,99 +1,120 @@
-// Импортируем необходимые хуки из React
 import { useEffect, useState } from 'react';
-// Хуки для навигации и получения данных, переданных через state
 import { useNavigate, useLocation } from 'react-router-dom';
-// Импортируем функцию для получения всех товаров из API
 import { getProducts } from '../services/api';
 
-// Компонент страницы сравнения товаров
 const ComparePage = () => {
-  // Хук для навигации (возврат в каталог)
   const navigate = useNavigate();
-  // Хук для получения объекта location, из которого достаём state
   const location = useLocation();
-
-  // Извлекаем массив selectedIds из location.state
-  // Если state нет или selectedIds отсутствует, используем пустой массив
   const { selectedIds = [] } = location.state || {};
 
-  // Состояние для хранения списка всех товаров, полученных с сервера
   const [products, setProducts] = useState([]);
-  // Состояние для отслеживания загрузки данных
   const [loading, setLoading] = useState(true);
-  // Состояние для хранения выбранных товаров (полные объекты)
   const [selectedProducts, setSelectedProducts] = useState([]);
 
-  // Эффект для загрузки всех товаров при монтировании компонента
+  // Загрузка всех товаров
   useEffect(() => {
-    // Асинхронная функция для загрузки
     const fetchProducts = async () => {
       try {
-        // Вызываем API для получения всех товаров
         const response = await getProducts();
-        // Сохраняем все товары в состояние
         setProducts(response.data);
       } catch (error) {
-        // В случае ошибки выводим её в консоль
         console.error('Ошибка загрузки товаров:', error);
       } finally {
-        // В любом случае снимаем флаг загрузки
         setLoading(false);
       }
     };
     fetchProducts();
-  }, []); // Пустой массив зависимостей – эффект выполнится только один раз
+  }, []);
 
-  // Эффект, который срабатывает, когда загружены товары или изменился selectedIds
+  // Фильтрация выбранных товаров
   useEffect(() => {
     if (products.length > 0 && selectedIds.length > 0) {
-      // Фильтруем массив products, оставляя только те, чей id есть в selectedIds
       const filtered = products.filter(product => selectedIds.includes(product.id));
       setSelectedProducts(filtered);
     } else {
-      // Если нет выбранных товаров, оставляем пустой массив
       setSelectedProducts([]);
     }
-  }, [products, selectedIds]); // Зависимости: когда products или selectedIds изменятся
+  }, [products, selectedIds]);
 
-  // Если массив selectedIds пуст (например, пользователь зашёл напрямую), перенаправляем в каталог
+  // Редирект, если нет выбранных товаров
   useEffect(() => {
     if (selectedIds.length === 0) {
       navigate('/');
     }
-  }, [selectedIds, navigate]); // Зависимости: selectedIds, navigate
+  }, [selectedIds, navigate]);
 
-  // Функция для построения таблицы сравнения
+  // Функция для определения, является ли характеристика количественной (числовой)
+  const isNumericSpec = (specName, value) => {
+    // Проверяем по ключевым словам и наличию чисел
+    const numericKeywords = ['цена', 'память', 'ГБ', 'МГц', 'ГГц', 'дюйм', 'дюйма', 'мАч', 'ватт', 'кг', 'г'];
+    const lowerName = specName.toLowerCase();
+    const hasKeyword = numericKeywords.some(keyword => lowerName.includes(keyword));
+    // Также проверяем, что значение можно преобразовать в число (если оно содержит цифры)
+    const numericValue = parseFloat(value);
+    const isNumeric = !isNaN(numericValue) && value.toString().match(/\d/);
+    return hasKeyword || isNumeric;
+  };
+
+  // Функция для определения, какое значение лучше (для числовых характеристик)
+  // Возвращает 'best', 'worst', или null
+  const getComparisonStatus = (specName, values, currentValue) => {
+    if (!isNumericSpec(specName, currentValue)) return null;
+
+    // Преобразуем все значения в числа (удаляем всё кроме цифр, точки и запятой)
+    const numericValues = values.map(v => {
+      if (v === '—') return NaN;
+      const num = parseFloat(v.toString().replace(/[^0-9.,]/g, '').replace(',', '.'));
+      return isNaN(num) ? NaN : num;
+    });
+
+    // Если хотя бы одно значение не число – не сравниваем
+    if (numericValues.some(isNaN)) return null;
+
+    const currentNum = parseFloat(currentValue.toString().replace(/[^0-9.,]/g, '').replace(',', '.'));
+    if (isNaN(currentNum)) return null;
+
+    // Правило: для цены лучше меньше, для остальных – больше
+    const isPrice = specName.toLowerCase().includes('цен');
+    if (isPrice) {
+      const minVal = Math.min(...numericValues);
+      if (currentNum === minVal) return 'best';
+      if (currentNum === Math.max(...numericValues)) return 'worst';
+    } else {
+      const maxVal = Math.max(...numericValues);
+      if (currentNum === maxVal) return 'best';
+      if (currentNum === Math.min(...numericValues)) return 'worst';
+    }
+    return null;
+  };
+
+  // Построение таблицы сравнения с фильтрацией одинаковых строк и подсветкой
   const renderComparisonTable = () => {
-    // Если товары ещё загружаются, показываем индикатор
     if (loading) return <div>Загрузка...</div>;
-    // Если после фильтрации нет выбранных товаров (например, удалены), сообщаем
     if (selectedProducts.length === 0) return <div>Выбранные товары не найдены.</div>;
 
-    // Собираем все уникальные названия характеристик из всех выбранных товаров
-    // 1. flatMap для каждого товара берёт ключи из объекта specifications и объединяет в массив
-    const allSpecKeys = selectedProducts.flatMap(product => 
+    // Собираем все уникальные названия характеристик
+    const allSpecKeys = selectedProducts.flatMap(product =>
       Object.keys(product.specifications || {})
     );
-    // 2. Создаём Set для удаления дубликатов, затем преобразуем обратно в массив
     const uniqueSpecs = [...new Set(allSpecKeys)];
+
+    // Фильтруем: оставляем только те характеристики, у которых не все значения одинаковы
+    const filteredSpecs = uniqueSpecs.filter(specName => {
+      const values = selectedProducts.map(p => p.specifications?.[specName] || '—');
+      const allEqual = values.every(v => v === values[0]);
+      return !allEqual;
+    });
 
     return (
       <div>
-        {/* Заголовок страницы */}
         <h2>Сравнение товаров</h2>
-        
-        {/* Кнопка возврата в каталог */}
         <button onClick={() => navigate('/')}>← Назад в каталог</button>
 
-        {/* Контейнер для таблицы с возможностью горизонтальной прокрутки, если колонок много */}
         <div style={{ overflowX: 'auto', marginTop: '20px' }}>
           <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-            {/* Заголовок таблицы */}
             <thead>
               <tr>
-                {/* Левая верхняя ячейка – "Характеристика" */}
                 <th style={cellStyle}>Характеристика</th>
-                {/* Для каждого выбранного товара создаём колонку с его названием */}
                 {selectedProducts.map(product => (
                   <th key={product.id} style={cellStyle}>
                     {product.name}
@@ -101,25 +122,34 @@ const ComparePage = () => {
                 ))}
               </tr>
             </thead>
-            {/* Тело таблицы */}
             <tbody>
-              {/* Для каждой уникальной характеристики создаём строку */}
-              {uniqueSpecs.map(specName => (
-                <tr key={specName}>
-                  {/* Ячейка с названием характеристики (полужирный шрифт) */}
-                  <td style={{ ...cellStyle, fontWeight: 'bold' }}>{specName}</td>
-                  {/* Для каждого товара выводим значение данной характеристики */}
-                  {selectedProducts.map(product => {
-                    // Получаем значение характеристики, если нет – ставим прочерк
-                    const value = product.specifications?.[specName] || '—';
-                    return (
-                      <td key={product.id} style={cellStyle}>
-                        {value}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
+              {filteredSpecs.map(specName => {
+                const values = selectedProducts.map(p => p.specifications?.[specName] || '—');
+                return (
+                  <tr key={specName}>
+                    <td style={{ ...cellStyle, fontWeight: 'bold' }}>{specName}</td>
+                    {selectedProducts.map((product, idx) => {
+                      const value = values[idx];
+                      let cellStyleExtended = { ...cellStyle };
+                      // Определяем статус сравнения (только для числовых характеристик)
+                      const status = getComparisonStatus(specName, values, value);
+                      if (status === 'best') {
+                        cellStyleExtended = { ...cellStyleExtended, backgroundColor: '#d4edda', color: '#155724' };
+                      } else if (status === 'worst') {
+                        cellStyleExtended = { ...cellStyleExtended, backgroundColor: '#f8d7da', color: '#721c24' };
+                      } else if (value !== values[0] && status === null) {
+                        // Для нечисловых характеристик – жёлтая подсветка отличий
+                        cellStyleExtended = { ...cellStyleExtended, backgroundColor: '#fff3cd' };
+                      }
+                      return (
+                        <td key={product.id} style={cellStyleExtended}>
+                          {value}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -127,11 +157,9 @@ const ComparePage = () => {
     );
   };
 
-  // Возвращаем результат функции renderComparisonTable
   return renderComparisonTable();
 };
 
-// Общий стиль для ячеек таблицы (для наглядности)
 const cellStyle = {
   border: '1px solid #ddd',
   padding: '8px',
