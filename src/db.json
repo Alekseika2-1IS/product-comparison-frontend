@@ -95,6 +95,22 @@
         "Питание": "6500 мА*ч"
       },
       "id": "RzsWMdW12v0"
+    },
+    {
+      "name": "Тестовый телефон Смартфон Tecno CAMON 50 256 ГБ зеленый",
+      "description": "Нужен для проверки фильтрации",
+      "price": 432434,
+      "category": "Смартфоны",
+      "imageUrl": "https://c.dns-shop.ru/thumb/st1/fit/500/500/b3d8bbaef1c7eace081ad05392ea4c97/0a0778b9041b90850d5c4be420822866ba7d711d8766ae1b1ac3a57aa616bacb.jpg.webp",
+      "specifications": {
+        "Дисплей": "6.78\", 2644x1208, AMOLED, 144 Гц",
+        "Связь": "3G, 4G, Nano-SIM",
+        "Процессор": "MediaTek Helio G200 Ultimate, 8 x 2.2 ГГц",
+        "Память (ОЗУ/ПЗУ)": "8 ГБ / 256 ГБ",
+        "Камера": "50+8+33 Мп",
+        "Питание": "9500 мА*ч"
+      },
+      "id": "4HPgxL0JkL4"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"
