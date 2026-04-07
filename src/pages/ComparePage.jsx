@@ -43,62 +43,142 @@ const ComparePage = () => {
     }
   }, [selectedIds, navigate]);
 
-  // Функция для определения, является ли характеристика количественной (числовой)
+  // ----------------------------------------------------------------------
+  // 1. Рейтинг процессоров (чем выше число, тем лучше)
+  // ----------------------------------------------------------------------
+  const getCpuScore = (cpuString) => {
+    if (!cpuString) return 0;
+    const str = cpuString.toLowerCase();
+    // Apple
+    if (str.includes('apple a19 pro')) return 100;
+    if (str.includes('apple a18')) return 95;
+    if (str.includes('apple a17')) return 90;
+    if (str.includes('apple a16')) return 85;
+    // Qualcomm Snapdragon
+    if (str.includes('snapdragon 8 elite')) return 98;
+    if (str.includes('snapdragon 8 gen 3')) return 92;
+    if (str.includes('snapdragon 8 gen 2')) return 88;
+    if (str.includes('snapdragon 8s gen 3')) return 86;
+    if (str.includes('snapdragon 7')) return 70;
+    // MediaTek
+    if (str.includes('mediatek dimensity 9300')) return 94;
+    if (str.includes('mediatek dimensity 9200')) return 87;
+    if (str.includes('mediatek helio g200')) return 65;
+    if (str.includes('mediatek helio')) return 55;
+    // Samsung Exynos
+    if (str.includes('exynos 2400')) return 82;
+    if (str.includes('exynos 2200')) return 75;
+    // Google Tensor
+    if (str.includes('tensor g4')) return 80;
+    // Другие
+    return 40;
+  };
+
+  // ----------------------------------------------------------------------
+  // 2. Извлечение числового значения из строки (для памяти, частоты, ёмкости и т.д.)
+  // ----------------------------------------------------------------------
+  const extractNumeric = (value, specName) => {
+    if (value === '—') return NaN;
+    const str = value.toString().toLowerCase();
+
+    // Для частоты обновления (Гц)
+    if (specName.toLowerCase().includes('гц') || str.includes('гц')) {
+      const match = str.match(/(\d+)\s*гц/i);
+      return match ? parseInt(match[1], 10) : NaN;
+    }
+    // Для мегапикселей (Мп)
+    if (specName.toLowerCase().includes('камер') || str.includes('мп')) {
+      const match = str.match(/(\d+)\s*мп/i);
+      return match ? parseInt(match[1], 10) : NaN;
+    }
+    // Для памяти (ГБ)
+    if (specName.toLowerCase().includes('память') || str.includes('гб')) {
+      const match = str.match(/(\d+)\s*гб/i);
+      return match ? parseInt(match[1], 10) : NaN;
+    }
+    // Для ёмкости аккумулятора (мАч)
+    if (specName.toLowerCase().includes('питание') || str.includes('мач') || str.includes('ма*ч')) {
+      const match = str.match(/(\d+)\s*ма/i);
+      return match ? parseInt(match[1], 10) : NaN;
+    }
+    // Для диагонали (дюймы)
+    if (specName.toLowerCase().includes('дисплей') || str.includes('дюйм')) {
+      const match = str.match(/(\d+\.?\d*)\s*["']/i);
+      if (match) return parseFloat(match[1]);
+      const match2 = str.match(/(\d+\.?\d*)\s*дюйм/i);
+      return match2 ? parseFloat(match2[1]) : NaN;
+    }
+    // Универсальное: если есть число, берём первое число
+    const numMatch = str.match(/(\d+(?:\.\d+)?)/);
+    return numMatch ? parseFloat(numMatch[1]) : NaN;
+  };
+
+  // ----------------------------------------------------------------------
+  // 3. Определение типа характеристики (числовая/качественная) и правил сравнения
+  // ----------------------------------------------------------------------
   const isNumericSpec = (specName, value) => {
-    // Проверяем по ключевым словам и наличию чисел
-    const numericKeywords = ['цена', 'память', 'ГБ', 'МГц', 'ГГц', 'дюйм', 'дюйма', 'мАч', 'ватт', 'кг', 'г'];
+    const numericKeywords = [
+      'цена', 'память', 'гб', 'мгц', 'ггц', 'мач', 'дюйм', 'гц', 'мп',
+      'объем', 'частота', 'тактовая частота', 'разрешение', 'пикселей', 'мегапиксель'
+    ];
     const lowerName = specName.toLowerCase();
     const hasKeyword = numericKeywords.some(keyword => lowerName.includes(keyword));
-    // Также проверяем, что значение можно преобразовать в число (если оно содержит цифры)
-    const numericValue = parseFloat(value);
-    const isNumeric = !isNaN(numericValue) && value.toString().match(/\d/);
-    return hasKeyword || isNumeric;
+    const extracted = extractNumeric(value, specName);
+    return hasKeyword || !isNaN(extracted);
   };
 
-  // Функция для определения, какое значение лучше (для числовых характеристик)
-  // Возвращает 'best', 'worst', или null
-  const getComparisonStatus = (specName, values, currentValue) => {
-    if (!isNumericSpec(specName, currentValue)) return null;
+  const getComparisonStatus = (specName, values, currentValue, productIndex, productsArray) => {
+    const lowerName = specName.toLowerCase();
 
-    // Преобразуем все значения в числа (удаляем всё кроме цифр, точки и запятой)
-    const numericValues = values.map(v => {
-      if (v === '—') return NaN;
-      const num = parseFloat(v.toString().replace(/[^0-9.,]/g, '').replace(',', '.'));
-      return isNaN(num) ? NaN : num;
-    });
-
-    // Если хотя бы одно значение не число – не сравниваем
-    if (numericValues.some(isNaN)) return null;
-
-    const currentNum = parseFloat(currentValue.toString().replace(/[^0-9.,]/g, '').replace(',', '.'));
-    if (isNaN(currentNum)) return null;
-
-    // Правило: для цены лучше меньше, для остальных – больше
-    const isPrice = specName.toLowerCase().includes('цен');
-    if (isPrice) {
-      const minVal = Math.min(...numericValues);
-      if (currentNum === minVal) return 'best';
-      if (currentNum === Math.max(...numericValues)) return 'worst';
-    } else {
-      const maxVal = Math.max(...numericValues);
-      if (currentNum === maxVal) return 'best';
-      if (currentNum === Math.min(...numericValues)) return 'worst';
+    // Специальная обработка для процессоров
+    if (lowerName.includes('процессор')) {
+      const scores = values.map(v => getCpuScore(v));
+      if (scores.some(isNaN)) return null;
+      const bestScore = Math.max(...scores);
+      const worstScore = Math.min(...scores);
+      const currentScore = getCpuScore(currentValue);
+      if (currentScore === bestScore && bestScore !== worstScore) return 'best';
+      if (currentScore === worstScore && bestScore !== worstScore) return 'worst';
+      return null;
     }
-    return null;
+
+    // Для числовых характеристик
+    if (isNumericSpec(specName, currentValue)) {
+      const numericValues = values.map(v => extractNumeric(v, specName));
+      if (numericValues.some(isNaN)) return null;
+      const isPrice = lowerName.includes('цен');
+      if (isPrice) {
+        const minVal = Math.min(...numericValues);
+        const maxVal = Math.max(...numericValues);
+        if (minVal === maxVal) return null;
+        if (numericValues[productIndex] === minVal) return 'best';
+        if (numericValues[productIndex] === maxVal) return 'worst';
+      } else {
+        const maxVal = Math.max(...numericValues);
+        const minVal = Math.min(...numericValues);
+        if (minVal === maxVal) return null;
+        if (numericValues[productIndex] === maxVal) return 'best';
+        if (numericValues[productIndex] === minVal) return 'worst';
+      }
+      return null;
+    }
+    return null; // для нечисловых не даём зелёный/красный (будет жёлтый, если отличаются)
   };
 
-  // Построение таблицы сравнения с фильтрацией одинаковых строк и подсветкой
+  // ----------------------------------------------------------------------
+  // 4. Построение таблицы
+  // ----------------------------------------------------------------------
   const renderComparisonTable = () => {
     if (loading) return <div>Загрузка...</div>;
     if (selectedProducts.length === 0) return <div>Выбранные товары не найдены.</div>;
 
-    // Собираем все уникальные названия характеристик
+    // Собираем все характеристики
     const allSpecKeys = selectedProducts.flatMap(product =>
       Object.keys(product.specifications || {})
     );
     const uniqueSpecs = [...new Set(allSpecKeys)];
 
-    // Фильтруем: оставляем только те характеристики, у которых не все значения одинаковы
+    // Фильтруем: оставляем только те, у которых не все значения одинаковы
     const filteredSpecs = uniqueSpecs.filter(specName => {
       const values = selectedProducts.map(p => p.specifications?.[specName] || '—');
       const allEqual = values.every(v => v === values[0]);
@@ -131,14 +211,14 @@ const ComparePage = () => {
                     {selectedProducts.map((product, idx) => {
                       const value = values[idx];
                       let cellStyleExtended = { ...cellStyle };
-                      // Определяем статус сравнения (только для числовых характеристик)
-                      const status = getComparisonStatus(specName, values, value);
+                      // Определяем статус сравнения (зелёный/красный)
+                      const status = getComparisonStatus(specName, values, value, idx, selectedProducts);
                       if (status === 'best') {
                         cellStyleExtended = { ...cellStyleExtended, backgroundColor: '#d4edda', color: '#155724' };
                       } else if (status === 'worst') {
                         cellStyleExtended = { ...cellStyleExtended, backgroundColor: '#f8d7da', color: '#721c24' };
-                      } else if (value !== values[0] && status === null) {
-                        // Для нечисловых характеристик – жёлтая подсветка отличий
+                      } else if (value !== values[0]) {
+                        // Для нечисловых или не сравнимых – жёлтая подсветка отличий
                         cellStyleExtended = { ...cellStyleExtended, backgroundColor: '#fff3cd' };
                       }
                       return (
