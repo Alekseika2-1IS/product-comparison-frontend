@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getProductById } from '../services/api';
-import { getProductRating, addReview } from '../services/ratingsService';
+import { getProductRating, addReview, getReviews } from '../services/ratingsService';
 import RatingStars from '../components/RatingStars/RatingStars';
 
 const ProductPage = ({ user }) => {
@@ -21,10 +21,8 @@ const ProductPage = ({ user }) => {
         setProduct(productRes.data);
         const info = getProductRating(id);
         setRatingInfo(info);
-        // Загрузка отзывов (если есть в вашем сервисе)
-        if (window.getProductReviews) {
-          setReviews(window.getProductReviews(id));
-        }
+        const reviewsList = getReviews(id);
+        setReviews(reviewsList);
       } catch (error) {
         console.error('Ошибка загрузки товара:', error);
       } finally {
@@ -47,14 +45,20 @@ const ProductPage = ({ user }) => {
       alert('Выберите количество звезд');
       return;
     }
-    // Вызов вашего сервиса добавления отзыва
-    // Например, если есть функция addReview в ratingsService
-    alert(`Спасибо за оценку ${selectedStars} звезд! Отзыв: ${newReview || 'без комментария'}`);
-    // Обновим рейтинг
+    if (!user) {
+      alert('Войдите, чтобы оставить отзыв');
+      return;
+    }
+    // Добавляем отзыв через сервис
+    addReview(id, user.id, user.login, newReview, selectedStars);
+    // Обновляем рейтинг и отзывы
     const updatedInfo = getProductRating(id);
     setRatingInfo(updatedInfo);
+    const updatedReviews = getReviews(id);
+    setReviews(updatedReviews);
     setNewReview('');
     setSelectedStars(0);
+    alert('Спасибо за отзыв!');
   };
 
   if (loading) return <div>Загрузка...</div>;
@@ -87,7 +91,6 @@ const ProductPage = ({ user }) => {
         </div>
       </div>
 
-      {/* Форма отзыва (если пользователь авторизован) */}
       {user && (
         <div style={{ marginTop: '30px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
           <h3>Оставить отзыв</h3>
@@ -107,7 +110,6 @@ const ProductPage = ({ user }) => {
         </div>
       )}
 
-      {/* Список отзывов – если у вас есть массив reviews, выведите его */}
       {reviews.length > 0 && (
         <div style={{ marginTop: '30px' }}>
           <h3>Отзывы</h3>

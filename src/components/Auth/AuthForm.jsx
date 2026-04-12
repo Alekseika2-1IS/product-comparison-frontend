@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { register, login } from '../../services/authService';
 
-const AuthForm = ({ onSuccess }) => {
+const AuthForm = ({ onSuccess, onClose }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({ login: '', password: '', email: '' });
   const [error, setError] = useState('');
@@ -30,9 +30,18 @@ const AuthForm = ({ onSuccess }) => {
     }
   };
 
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget && onClose) {
+      onClose();
+    }
+  };
+
   return (
-    <div style={overlayStyle}>
+    <div style={overlayStyle} onClick={handleOverlayClick}>
       <div style={modalStyle}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={closeButtonStyle}>✖</button>
+        </div>
         <h2>{isLogin ? 'Вход' : 'Регистрация'}</h2>
         {error && <div style={{ color: 'red', marginBottom: '10px' }}>{error}</div>}
         <form onSubmit={handleSubmit}>
@@ -60,13 +69,15 @@ const AuthForm = ({ onSuccess }) => {
   );
 };
 
-// Стили (можно вынести в CSS, для простоты оставим inline)
 const overlayStyle = {
   position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
   backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000
 };
 const modalStyle = {
-  backgroundColor: 'white', padding: '20px', borderRadius: '8px', width: '300px'
+  backgroundColor: 'white', padding: '20px', borderRadius: '8px', width: '300px', position: 'relative'
+};
+const closeButtonStyle = {
+  background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#666'
 };
 const fieldGroup = { marginBottom: '10px' };
 const inputStyle = { width: '100%', padding: '8px', marginTop: '4px' };

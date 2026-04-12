@@ -7,7 +7,6 @@ import { getProductRating } from "../services/ratingsService";
 import ProductCard from '../components/ProductCard/ProductCard';
 import ProductForm from '../components/ProductForm/ProductForm';
 import AuthForm from '../components/Auth/AuthForm';
-import RatingStars from "../components/RatingStars/RatingStars";
 
 const CatalogPage = () => {
   const [products, setProducts] = useState([]);
@@ -135,24 +134,6 @@ const CatalogPage = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Каталог товаров</h1>
-        <div>
-          {!currentUser ? (
-            <button onClick={() => setShowAuth(true)} style={buttonStyle}>Войти</button>
-          ) : (
-            <>
-              <span>Привет, {currentUser.login} </span>
-              <button onClick={() => navigate('/cart')} style={buttonStyle}>Корзина</button>
-              {isAdmin() && (
-                <button onClick={() => navigate('/admin')} style={buttonStyle}>Админ-панель</button>
-              )}
-              <button onClick={handleLogout} style={buttonStyle}>Выйти</button>
-            </>
-          )}
-        </div>
-      </div>
-
       <button onClick={handleAddClick} style={{ marginBottom: '20px' }}>+ Добавить товар</button>
 
       <div style={{ marginBottom: '20px' }}>
@@ -163,7 +144,7 @@ const CatalogPage = () => {
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
         {products.map(product => (
-          <div key={product.id} style={{ position: 'relative', width: '220px' }}>
+          <div key={product.id} style={{ position: 'relative', width: '240px' }}>
             <ProductCard
               product={product}
               onSelect={handleSelect}
@@ -173,9 +154,6 @@ const CatalogPage = () => {
               onAddToCart={handleAddToCart}
               user={currentUser}
             />
-            <div style={{ marginTop: '5px' }}>
-              <RatingStars productId={product.id} onRatingUpdate={fetchProducts} />
-            </div>
           </div>
         ))}
       </div>
@@ -191,16 +169,6 @@ const CatalogPage = () => {
       {showAuth && <AuthForm onSuccess={handleAuthSuccess} onClose={() => setShowAuth(false)} />}
     </div>
   );
-};
-
-const buttonStyle = {
-  marginLeft: '10px',
-  padding: '5px 10px',
-  backgroundColor: '#2196F3',
-  color: 'white',
-  border: 'none',
-  borderRadius: '4px',
-  cursor: 'pointer'
 };
 
 export default CatalogPage;
