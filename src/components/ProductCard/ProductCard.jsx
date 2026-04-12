@@ -1,7 +1,50 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import RatingStars from '../RatingStars/RatingStars';
+import { getProductRating } from '../../services/ratingsService';
+import { addToCart } from '../../services/cartService';
 
-const ProductCard = ({ product, onSelect, isSelected, onEdit, onDelete }) => {
-  // Обработчик изменения чекбокса
+const ProductCard = ({ product, onSelect, isSelected, onEdit, onDelete, user }) => {
+  const [ratingInfo, setRatingInfo] = useState({ average: 0, count: 0 });
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewText, setReviewText] = useState('');
+  const [selectedStars, setSelectedStars] = useState(0);
+
+  useEffect(() => {
+    const info = getProductRating(product.id);
+    setRatingInfo(info);
+  }, [product.id]);
+
+  const handleRate = (stars) => {
+    if (!user) {
+      alert('Для оценки товара необходимо войти');
+      return;
+    }
+    setSelectedStars(stars);
+    setShowReviewForm(true);
+  };
+
+  const submitReview = () => {
+    if (selectedStars === 0) {
+      alert('Выберите количество звезд');
+      return;
+    }
+    // В реальном сервисе добавим отзыв
+    // Для простоты пока просто покажем уведомление
+    alert(`Спасибо за оценку ${selectedStars} звезд! Отзыв: ${reviewText || 'без комментария'}`);
+    // Здесь нужно вызвать addReview из ratingsService, но пока опустим для краткости
+    setShowReviewForm(false);
+    setReviewText('');
+    setSelectedStars(0);
+    // Обновим рейтинг (временно)
+    const newInfo = getProductRating(product.id);
+    setRatingInfo(newInfo);
+  };
+
+  const handleAddToCart = () => {
+    addToCart(product);
+    alert(`${product.name} добавлен в корзину`);
+  };
+
   const handleCheckboxChange = (e) => {
     onSelect(product.id, e.target.checked);
   };
@@ -12,65 +55,47 @@ const ProductCard = ({ product, onSelect, isSelected, onEdit, onDelete }) => {
       borderRadius: '8px',
       padding: '10px',
       margin: '10px',
-      width: '220px',
+      width: '240px',
       boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-      position: 'relative',
       backgroundColor: '#fff'
     }}>
-      {/* Изображение товара */}
-      <img 
-        src={product.imageUrl || 'https://via.placeholder.com/150'} 
-        alt={product.name} 
-        style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '4px' }} 
-      />
+      <img src={product.imageUrl || 'https://via.placeholder.com/150'} alt={product.name} style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '4px' }} />
+      <h3 style={{ fontSize: '1rem', margin: '10px 0 5px' }}>{product.name}</h3>
+      <p style={{ fontWeight: 'bold' }}>{product.price} руб.</p>
       
-      {/* Название товара */}
-      <h3 style={{ margin: '10px 0 5px', fontSize: '1.1rem' }}>{product.name}</h3>
-      
-      {/* Цена товара */}
-      <p style={{ fontWeight: 'bold', margin: '5px 0' }}>{product.price} руб.</p>
-      
-      {/* Чекбокс для выбора сравнения */}
-      <label style={{ display: 'flex', alignItems: 'center', gap: '5px', margin: '10px 0' }}>
-        <input 
-          type="checkbox" 
-          checked={isSelected} 
-          onChange={handleCheckboxChange} 
-        />
-        <span>Сравнить</span>
-      </label>
-
-      {/* Кнопки управления (редактирование/удаление) */}
-      <div style={{ display: 'flex', gap: '5px', marginTop: '10px' }}>
-        <button 
-          onClick={() => onEdit(product)} 
-          style={{
-            flex: 1,
-            padding: '5px',
-            backgroundColor: '#4CAF50',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          ✎ Ред.
-        </button>
-        <button 
-          onClick={() => onDelete(product.id)} 
-          style={{
-            flex: 1,
-            padding: '5px',
-            backgroundColor: '#f44336',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          🗑 Удалить
-        </button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <RatingStars rating={ratingInfo.average} onRate={handleRate} readonly={false} />
+        <span>({ratingInfo.count})</span>
       </div>
+
+      <div style={{ margin: '10px 0' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <input type="checkbox" checked={isSelected} onChange={handleCheckboxChange} />
+          <span>Сравнить</span>
+        </label>
+      </div>
+
+      <div style={{ display: 'flex', gap: '5px', marginTop: '10px', flexWrap: 'wrap' }}>
+        <button onClick={handleAddToCart} style={{ flex: 1, backgroundColor: '#ffc107', border: 'none', borderRadius: '4px', padding: '5px', cursor: 'pointer' }}>
+          В корзину
+        </button>
+        {user && user.role === 'admin' && (
+          <>
+            <button onClick={() => onEdit(product)} style={{ flex: 1, backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Ред.</button>
+            <button onClick={() => onDelete(product.id)} style={{ flex: 1, backgroundColor: '#f44336', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Удалить</button>
+          </>
+        )}
+      </div>
+
+      {showReviewForm && (
+        <div style={{ marginTop: '10px', borderTop: '1px solid #eee', paddingTop: '10px' }}>
+          <textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)} placeholder="Ваш отзыв (необязательно)" rows="2" style={{ width: '100%' }} />
+          <div style={{ display: 'flex', gap: '5px', marginTop: '5px' }}>
+            <button onClick={submitReview}>Отправить</button>
+            <button onClick={() => setShowReviewForm(false)}>Отмена</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

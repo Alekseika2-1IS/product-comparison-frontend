@@ -4,9 +4,8 @@ import { getProducts, deleteProduct } from '../services/api';
 import ProductCard from '../components/ProductCard/ProductCard';
 import ProductForm from '../components/ProductForm/ProductForm';
 
-const CatalogPage = () => {
+const CatalogPage = ({ user }) => {
   const [products, setProducts] = useState([]);
-  // Инициализируем selectedIds из localStorage (если там есть сохранённые)
   const [selectedIds, setSelectedIds] = useState(() => {
     const saved = localStorage.getItem('selectedIds');
     return saved ? JSON.parse(saved) : [];
@@ -15,23 +14,22 @@ const CatalogPage = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const navigate = useNavigate();
 
-  // Загружаем товары при монтировании
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await getProducts();
-        setProducts(response.data);
-      } catch (error) {
-        console.error('Ошибка загрузки товаров:', error);
-      }
-    };
     fetchProducts();
   }, []);
 
-  // Сохраняем выбранные ID в localStorage при каждом изменении
   useEffect(() => {
     localStorage.setItem('selectedIds', JSON.stringify(selectedIds));
   }, [selectedIds]);
+
+  const fetchProducts = async () => {
+    try {
+      const response = await getProducts();
+      setProducts(response.data);
+    } catch (error) {
+      console.error('Ошибка загрузки товаров:', error);
+    }
+  };
 
   const handleSelect = (id, isChecked) => {
     if (isChecked) {
@@ -72,7 +70,6 @@ const CatalogPage = () => {
       try {
         await deleteProduct(id);
         setProducts(products.filter(p => p.id !== id));
-        // Удаляем ID из выбранных, если он там был
         setSelectedIds(selectedIds.filter(selectedId => selectedId !== id));
       } catch (error) {
         console.error('Ошибка удаления товара:', error);
@@ -92,23 +89,17 @@ const CatalogPage = () => {
   return (
     <div>
       <h1>Каталог товаров</h1>
-      <button onClick={handleAddClick} style={{ marginBottom: '20px' }}>
-        + Добавить товар
-      </button>
+      {user && user.role === 'admin' && (
+        <button onClick={handleAddClick} style={{ marginBottom: '20px' }}>+ Добавить товар</button>
+      )}
 
       <div style={{ marginBottom: '20px' }}>
         <span>Выбрано: {selectedIds.length} товаров</span>
-        <button
-          onClick={handleCompare}
-          disabled={selectedIds.length < 2}
-          style={{ marginLeft: '10px' }}
-        >
+        <button onClick={handleCompare} disabled={selectedIds.length < 2} style={{ marginLeft: '10px' }}>
           Сравнить ({selectedIds.length})
         </button>
         {selectedIds.length > 0 && (
-          <button onClick={handleClear} style={{ marginLeft: '10px' }}>
-            Очистить выбор
-          </button>
+          <button onClick={handleClear} style={{ marginLeft: '10px' }}>Очистить выбор</button>
         )}
       </div>
 
@@ -121,6 +112,7 @@ const CatalogPage = () => {
             isSelected={selectedIds.includes(product.id)}
             onEdit={handleEditClick}
             onDelete={handleDeleteClick}
+            user={user}
           />
         ))}
       </div>
