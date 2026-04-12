@@ -71,10 +71,21 @@ export const getReviews = (productId) => {
   return reviews.filter(r => r.productId === productId);
 };
 
-// Дополнительная функция для удаления отзыва (по id)
+// Добавляем функцию удаления отзыва
 export const deleteReview = (reviewId) => {
   init();
   const reviews = JSON.parse(localStorage.getItem(REVIEWS_KEY));
   const updatedReviews = reviews.filter(r => r.id !== reviewId);
   localStorage.setItem(REVIEWS_KEY, JSON.stringify(updatedReviews));
+  
+  // Пересчитываем рейтинг товара после удаления отзыва
+  // Находим productId удалённого отзыва
+  const deletedReview = reviews.find(r => r.id === reviewId);
+  if (deletedReview) {
+    const productId = deletedReview.productId;
+    const ratings = JSON.parse(localStorage.getItem(RATINGS_KEY));
+    // Удаляем оценку пользователя (если она была)
+    const updatedRatings = ratings.filter(r => !(r.productId === productId && r.userId === deletedReview.userId));
+    localStorage.setItem(RATINGS_KEY, JSON.stringify(updatedRatings));
+  }
 };

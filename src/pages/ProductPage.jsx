@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getProductById } from '../services/api';
 import { getProductRating, addReview, getReviews, deleteReview } from '../services/ratingsService';
+import { isAdmin } from '../services/authService';
 import RatingStars from '../components/RatingStars/RatingStars';
 
 const ProductPage = ({ user }) => {
@@ -15,22 +16,26 @@ const ProductPage = ({ user }) => {
   const [selectedStars, setSelectedStars] = useState(0);
   const [reviewError, setReviewError] = useState('');
 
+  const loadData = () => {
+    const info = getProductRating(id);
+    setRatingInfo(info);
+    const reviewsList = getReviews(id);
+    setReviews(reviewsList);
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchProduct = async () => {
       try {
         const productRes = await getProductById(id);
         setProduct(productRes.data);
-        const info = getProductRating(id);
-        setRatingInfo(info);
-        const reviewsList = getReviews(id);
-        setReviews(reviewsList);
+        loadData();
       } catch (error) {
         console.error('Ошибка загрузки товара:', error);
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
+    fetchProduct();
   }, [id]);
 
   const handleRate = (stars) => {
@@ -51,32 +56,20 @@ const ProductPage = ({ user }) => {
       return;
     }
     setReviewError('');
-    // Сохраняем отзыв и оценку
     addReview(id, user.id, user.login, newReview, selectedStars);
-    // Обновляем рейтинг и отзывы
-    const updatedInfo = getProductRating(id);
-    setRatingInfo(updatedInfo);
-    const updatedReviews = getReviews(id);
-    setReviews(updatedReviews);
-    // Сбрасываем форму
+    loadData(); // обновляем рейтинг и отзывы на странице
     setNewReview('');
     setSelectedStars(0);
+    // Отправляем событие для обновления карточек в каталоге
+    window.dispatchEvent(new CustomEvent('ratingUpdated', { detail: { productId: id } }));
     alert('Спасибо за ваш отзыв!');
   };
 
   const handleDeleteReview = (reviewId) => {
-    if (!user || user.role !== 'admin') {
-      alert('Только администратор может удалять отзывы');
-      return;
-    }
     if (window.confirm('Удалить этот отзыв?')) {
       deleteReview(reviewId);
-      // Обновляем список отзывов
-      const updatedReviews = getReviews(id);
-      setReviews(updatedReviews);
-      // Пересчитываем рейтинг
-      const updatedInfo = getProductRating(id);
-      setRatingInfo(updatedInfo);
+      loadData();
+      window.dispatchEvent(new CustomEvent('ratingUpdated', { detail: { productId: id } }));
     }
   };
 
@@ -134,13 +127,11 @@ const ProductPage = ({ user }) => {
         <div style={{ marginTop: '30px' }}>
           <h3>Отзывы</h3>
           {reviews.map((rev) => (
-            <div key={rev.id} style={{ borderBottom: '1px solid #eee', padding: '10px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <strong>{rev.author}</strong> <span style={{ color: '#888' }}>{rev.date}</span>
-                <p>{rev.text}</p>
-              </div>
-              {user && user.role === 'admin' && (
-                <button onClick={() => handleDeleteReview(rev.id)} style={{ background: '#f44336', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer' }}>
+            <div key={rev.id} style={{ borderBottom: '1px solid #eee', padding: '10px 0', position: 'relative' }}>
+              <strong>{rev.author}</strong> <span style={{ color: '#888' }}>{rev.date}</span>
+              <p>{rev.text}</p>
+              {isAdmin() && (
+                <button onClick={() => handleDeleteReview(rev.id)} style={{ position: 'absolute', right: 0, top: 10, background: '#f44336', color: 'white', border: 'none', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer' }}>
                   Удалить
                 </button>
               )}

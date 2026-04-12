@@ -8,9 +8,24 @@ const ProductCard = ({ product, onSelect, isSelected, onEdit, onDelete, user, on
   const [reviewText, setReviewText] = useState('');
   const [selectedStars, setSelectedStars] = useState(0);
 
-  useEffect(() => {
+  const loadRating = () => {
     const info = getProductRating(product.id);
     setRatingInfo(info);
+  };
+
+  useEffect(() => {
+    loadRating();
+  }, [product.id]);
+
+  // Подписываемся на событие обновления рейтинга
+  useEffect(() => {
+    const handleRatingUpdate = (event) => {
+      if (event.detail && event.detail.productId === product.id) {
+        loadRating();
+      }
+    };
+    window.addEventListener('ratingUpdated', handleRatingUpdate);
+    return () => window.removeEventListener('ratingUpdated', handleRatingUpdate);
   }, [product.id]);
 
   const handleRate = (stars) => {
@@ -27,13 +42,14 @@ const ProductCard = ({ product, onSelect, isSelected, onEdit, onDelete, user, on
       alert('Выберите количество звезд');
       return;
     }
-    // Здесь должен быть вызов сервиса добавления отзыва
+    // Здесь должен быть вызов сервиса добавления отзыва, но для краткости оставим alert
     alert(`Спасибо за оценку ${selectedStars} звезд! Отзыв: ${reviewText || 'без комментария'}`);
     setShowReviewForm(false);
     setReviewText('');
     setSelectedStars(0);
-    const newInfo = getProductRating(product.id);
-    setRatingInfo(newInfo);
+    loadRating();
+    // Отправляем событие для обновления других карточек (если нужно)
+    window.dispatchEvent(new CustomEvent('ratingUpdated', { detail: { productId: product.id } }));
   };
 
   const handleAddToCart = () => {
