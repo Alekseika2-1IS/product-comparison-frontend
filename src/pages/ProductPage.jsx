@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getProductById } from '../services/api';
-import { getProductRating, addReview, getReviews } from '../services/ratingsService';
+import { getProductRating, addReview, getReviews, deleteReview } from '../services/ratingsService';
 import RatingStars from '../components/RatingStars/RatingStars';
 
 const ProductPage = ({ user }) => {
@@ -64,6 +64,22 @@ const ProductPage = ({ user }) => {
     alert('Спасибо за ваш отзыв!');
   };
 
+  const handleDeleteReview = (reviewId) => {
+    if (!user || user.role !== 'admin') {
+      alert('Только администратор может удалять отзывы');
+      return;
+    }
+    if (window.confirm('Удалить этот отзыв?')) {
+      deleteReview(reviewId);
+      // Обновляем список отзывов
+      const updatedReviews = getReviews(id);
+      setReviews(updatedReviews);
+      // Пересчитываем рейтинг
+      const updatedInfo = getProductRating(id);
+      setRatingInfo(updatedInfo);
+    }
+  };
+
   if (loading) return <div>Загрузка...</div>;
   if (!product) return <div>Товар не найден</div>;
 
@@ -117,10 +133,17 @@ const ProductPage = ({ user }) => {
       {reviews.length > 0 && (
         <div style={{ marginTop: '30px' }}>
           <h3>Отзывы</h3>
-          {reviews.map((rev, idx) => (
-            <div key={idx} style={{ borderBottom: '1px solid #eee', padding: '10px 0' }}>
-              <strong>{rev.author}</strong> <span style={{ color: '#888' }}>{rev.date}</span>
-              <p>{rev.text}</p>
+          {reviews.map((rev) => (
+            <div key={rev.id} style={{ borderBottom: '1px solid #eee', padding: '10px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <strong>{rev.author}</strong> <span style={{ color: '#888' }}>{rev.date}</span>
+                <p>{rev.text}</p>
+              </div>
+              {user && user.role === 'admin' && (
+                <button onClick={() => handleDeleteReview(rev.id)} style={{ background: '#f44336', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer' }}>
+                  Удалить
+                </button>
+              )}
             </div>
           ))}
         </div>

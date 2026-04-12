@@ -70,3 +70,11 @@ export const getReviews = (productId) => {
   const reviews = JSON.parse(localStorage.getItem(REVIEWS_KEY));
   return reviews.filter(r => r.productId === productId);
 };
+
+// Дополнительная функция для удаления отзыва (по id)
+export const deleteReview = (reviewId) => {
+  init();
+  const reviews = JSON.parse(localStorage.getItem(REVIEWS_KEY));
+  const updatedReviews = reviews.filter(r => r.id !== reviewId);
+  localStorage.setItem(REVIEWS_KEY, JSON.stringify(updatedReviews));
+};
