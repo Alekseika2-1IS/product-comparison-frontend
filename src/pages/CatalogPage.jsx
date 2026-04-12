@@ -7,7 +7,7 @@ import { getProductRating } from "../services/ratingsService";
 import ProductCard from '../components/ProductCard/ProductCard';
 import ProductForm from '../components/ProductForm/ProductForm';
 import AuthForm from '../components/Auth/AuthForm';
-import RatingStars from '../components/Rating/RatingStars';
+import RatingStars from "../components/RatingStars/RatingStars";
 
 const CatalogPage = () => {
   const [products, setProducts] = useState([]);
