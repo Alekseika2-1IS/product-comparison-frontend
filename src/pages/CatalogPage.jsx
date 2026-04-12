@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getProducts, deleteProduct } from '../services/api';
 import { getCurrentUser, isAdmin, logout } from '../services/authService';
 import { addToCart } from '../services/cartService';
-import { getAverageRating } from '../services/ratingService';
+import { getProductRating } from "../services/ratingsService";
 import ProductCard from '../components/ProductCard/ProductCard';
 import ProductForm from '../components/ProductForm/ProductForm';
 import AuthForm from '../components/Auth/AuthForm';
@@ -36,7 +36,8 @@ const CatalogPage = () => {
       setProducts(response.data);
       const ratingsData = {};
       for (const product of response.data) {
-        ratingsData[product.id] = getAverageRating(product.id);
+        const info = getProductRating(product.id);
+        ratingsData[product.id] = info.average;
       }
       setRatings(ratingsData);
     } catch (error) {
@@ -117,7 +118,7 @@ const CatalogPage = () => {
       setShowAuth(true);
       return;
     }
-    addToCart(product.id, 1);
+    addToCart(product, 1);
     alert(`${product.name} добавлен в корзину`);
   };
 
@@ -170,6 +171,7 @@ const CatalogPage = () => {
               onEdit={handleEditClick}
               onDelete={handleDeleteClick}
               onAddToCart={handleAddToCart}
+              user={currentUser}
             />
             <div style={{ marginTop: '5px' }}>
               <RatingStars productId={product.id} onRatingUpdate={fetchProducts} />
