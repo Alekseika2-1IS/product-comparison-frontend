@@ -4,7 +4,7 @@ import CatalogPage from './pages/CatalogPage';
 import ComparePage from './pages/ComparePage';
 import CartPage from './pages/CartPage';
 import AdminPage from './pages/AdminPage';
-import ProductPage from './pages/ProductPage';  // <-- новый импорт
+import ProductPage from './pages/ProductPage';
 import AuthForm from './components/Auth/AuthForm';
 import { getCurrentUser, logout, isAdmin } from './services/authService';
 
@@ -49,14 +49,14 @@ function AppContent() {
         </nav>
       </header>
 
-      {showAuth && <AuthForm onSuccess={handleLoginSuccess} />}
+      {showAuth && <AuthForm onSuccess={handleLoginSuccess} onClose={() => setShowAuth(false)} />}
 
       <Routes>
         <Route path="/" element={<CatalogPage user={user} />} />
         <Route path="/compare" element={<ComparePage />} />
         <Route path="/cart" element={<CartPage user={user} />} />
         <Route path="/admin" element={<AdminPage user={user} />} />
-        <Route path="/product/:id" element={<ProductPage user={user} />} />  {/* новый маршрут */}
+        <Route path="/product/:id" element={<ProductPage user={user} />} />
       </Routes>
     </div>
   );

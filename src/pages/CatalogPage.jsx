@@ -18,7 +18,6 @@ const CatalogPage = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [currentUser, setCurrentUser] = useState(getCurrentUser());
   const [showAuth, setShowAuth] = useState(false);
-  const [ratings, setRatings] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,12 +32,6 @@ const CatalogPage = () => {
     try {
       const response = await getProducts();
       setProducts(response.data);
-      const ratingsData = {};
-      for (const product of response.data) {
-        const info = getProductRating(product.id);
-        ratingsData[product.id] = info.average;
-      }
-      setRatings(ratingsData);
     } catch (error) {
       console.error('Ошибка загрузки товаров:', error);
     }
@@ -121,12 +114,6 @@ const CatalogPage = () => {
     alert(`${product.name} добавлен в корзину`);
   };
 
-  const handleLogout = () => {
-    logout();
-    setCurrentUser(null);
-    navigate('/');
-  };
-
   const handleAuthSuccess = (user) => {
     setCurrentUser(user);
     setShowAuth(false);
@@ -134,6 +121,7 @@ const CatalogPage = () => {
 
   return (
     <div>
+      {/* Убрана локальная шапка с кнопками – они теперь в App.jsx */}
       <button onClick={handleAddClick} style={{ marginBottom: '20px' }}>+ Добавить товар</button>
 
       <div style={{ marginBottom: '20px' }}>
@@ -144,17 +132,16 @@ const CatalogPage = () => {
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
         {products.map(product => (
-          <div key={product.id} style={{ position: 'relative', width: '240px' }}>
-            <ProductCard
-              product={product}
-              onSelect={handleSelect}
-              isSelected={selectedIds.includes(product.id)}
-              onEdit={handleEditClick}
-              onDelete={handleDeleteClick}
-              onAddToCart={handleAddToCart}
-              user={currentUser}
-            />
-          </div>
+          <ProductCard
+            key={product.id}
+            product={product}
+            onSelect={handleSelect}
+            isSelected={selectedIds.includes(product.id)}
+            onEdit={handleEditClick}
+            onDelete={handleDeleteClick}
+            onAddToCart={handleAddToCart}
+            user={currentUser}
+          />
         ))}
       </div>
 

@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import RatingStars from '../RatingStars/RatingStars';
 import { getProductRating } from '../../services/ratingsService';
-import { addToCart } from '../../services/cartService';
 
-const ProductCard = ({ product, onSelect, isSelected, onEdit, onDelete, user }) => {
+const ProductCard = ({ product, onSelect, isSelected, onEdit, onDelete, user, onAddToCart }) => {
   const [ratingInfo, setRatingInfo] = useState({ average: 0, count: 0 });
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewText, setReviewText] = useState('');
@@ -33,26 +32,22 @@ const ProductCard = ({ product, onSelect, isSelected, onEdit, onDelete, user }) 
     setShowReviewForm(false);
     setReviewText('');
     setSelectedStars(0);
-    // Обновим рейтинг
     const newInfo = getProductRating(product.id);
     setRatingInfo(newInfo);
   };
 
   const handleAddToCart = () => {
-    addToCart(product);
-    alert(`${product.name} добавлен в корзину`);
+    if (onAddToCart) onAddToCart(product);
   };
 
   const handleCheckboxChange = (e) => {
     onSelect(product.id, e.target.checked);
   };
 
-  // Обработчик ошибки загрузки изображения
   const handleImageError = (e) => {
     e.target.src = 'https://via.placeholder.com/150?text=No+Image';
   };
 
-  // Переход на страницу товара
   const goToProductPage = () => {
     window.location.href = `/product/${product.id}`;
   };
@@ -77,7 +72,6 @@ const ProductCard = ({ product, onSelect, isSelected, onEdit, onDelete, user }) 
       <h3 style={{ fontSize: '1rem', margin: '10px 0 5px' }}>{product.name}</h3>
       <p style={{ fontWeight: 'bold' }}>{product.price} руб.</p>
       
-      {/* Блок рейтинга – звёзды уже жёлтые в компоненте RatingStars, но для надёжности проверим */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} onClick={(e) => e.stopPropagation()}>
         <RatingStars rating={ratingInfo.average} onRate={handleRate} readonly={false} />
         <span>({ratingInfo.count})</span>

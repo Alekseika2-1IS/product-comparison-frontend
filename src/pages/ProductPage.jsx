@@ -13,6 +13,7 @@ const ProductPage = ({ user }) => {
   const [reviews, setReviews] = useState([]);
   const [newReview, setNewReview] = useState('');
   const [selectedStars, setSelectedStars] = useState(0);
+  const [reviewError, setReviewError] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -41,24 +42,26 @@ const ProductPage = ({ user }) => {
   };
 
   const handleSubmitReview = () => {
-    if (selectedStars === 0) {
-      alert('Выберите количество звезд');
-      return;
-    }
     if (!user) {
       alert('Войдите, чтобы оставить отзыв');
       return;
     }
-    // Добавляем отзыв через сервис
+    if (selectedStars === 0) {
+      setReviewError('Выберите количество звезд');
+      return;
+    }
+    setReviewError('');
+    // Сохраняем отзыв и оценку
     addReview(id, user.id, user.login, newReview, selectedStars);
     // Обновляем рейтинг и отзывы
     const updatedInfo = getProductRating(id);
     setRatingInfo(updatedInfo);
     const updatedReviews = getReviews(id);
     setReviews(updatedReviews);
+    // Сбрасываем форму
     setNewReview('');
     setSelectedStars(0);
-    alert('Спасибо за отзыв!');
+    alert('Спасибо за ваш отзыв!');
   };
 
   if (loading) return <div>Загрузка...</div>;
@@ -94,6 +97,7 @@ const ProductPage = ({ user }) => {
       {user && (
         <div style={{ marginTop: '30px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
           <h3>Оставить отзыв</h3>
+          {reviewError && <div style={{ color: 'red', marginBottom: '10px' }}>{reviewError}</div>}
           <div style={{ marginBottom: '10px' }}>
             <RatingStars rating={selectedStars} onRate={handleRate} readonly={false} />
           </div>

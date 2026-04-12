@@ -2,14 +2,18 @@ import { useState, useEffect } from 'react';
 import { getRating, setRating, getUserRating } from '../../services/ratingsService';
 import { getCurrentUser } from '../../services/authService';
 
-const RatingStars = ({ productId, onRatingUpdate }) => {
-  const [averageRating, setAverageRating] = useState(0);
+const RatingStars = ({ productId, onRatingUpdate, rating: externalRating, onRate, readonly = false }) => {
+  const [averageRating, setAverageRating] = useState(externalRating || 0);
   const [userRating, setUserRating] = useState(null);
   const currentUser = getCurrentUser();
 
   useEffect(() => {
-    loadRatings();
-  }, [productId]);
+    if (!externalRating && productId) {
+      loadRatings();
+    } else if (externalRating !== undefined) {
+      setAverageRating(externalRating);
+    }
+  }, [productId, externalRating]);
 
   const loadRatings = async () => {
     const avg = await getRating(productId);
@@ -21,13 +25,34 @@ const RatingStars = ({ productId, onRatingUpdate }) => {
   };
 
   const handleRating = async (value) => {
+    if (readonly) return;
     if (!currentUser) {
       alert('Войдите, чтобы оценить товар');
       return;
     }
-    await setRating(productId, currentUser.id, value);
-    await loadRatings();
-    if (onRatingUpdate) onRatingUpdate();
+    if (onRate) {
+      onRate(value);
+    } else {
+      await setRating(productId, currentUser.id, value);
+      await loadRatings();
+      if (onRatingUpdate) onRatingUpdate();
+    }
+  };
+
+  // Определяем, какую звезду показывать (для средней оценки)
+  const getStarFill = (starIndex) => {
+    if (userRating !== null && !readonly) {
+      return starIndex <= userRating ? '#ffc107' : '#e4e5e9';
+    }
+    // Для средней оценки – заливаем целые звёзды, для дробных – частично
+    const fullStars = Math.floor(averageRating);
+    const decimal = averageRating - fullStars;
+    if (starIndex <= fullStars) return '#ffc107';
+    if (starIndex === fullStars + 1 && decimal > 0) {
+      // Частичная заливка (можно сделать градиентом, но для простоты оставим полную звезду)
+      return '#ffc107';
+    }
+    return '#e4e5e9';
   };
 
   return (
@@ -36,11 +61,11 @@ const RatingStars = ({ productId, onRatingUpdate }) => {
         {[1, 2, 3, 4, 5].map(star => (
           <span
             key={star}
-            onClick={() => handleRating(star)}
+            onClick={() => !readonly && handleRating(star)}
             style={{
-              cursor: 'pointer',
+              cursor: readonly ? 'default' : 'pointer',
               fontSize: '20px',
-              color: (userRating && star <= userRating) || (!userRating && star <= averageRating) ? '#ffc107' : '#e4e5e9',
+              color: getStarFill(star),
               transition: 'color 0.2s'
             }}
           >
@@ -48,7 +73,7 @@ const RatingStars = ({ productId, onRatingUpdate }) => {
           </span>
         ))}
       </div>
-      <span style={{ fontSize: '14px', color: '#666' }}>({averageRating.toFixed(1)})</span>
+      {!readonly && <span style={{ fontSize: '14px', color: '#666' }}>({averageRating.toFixed(1)})</span>}
     </div>
   );
 };

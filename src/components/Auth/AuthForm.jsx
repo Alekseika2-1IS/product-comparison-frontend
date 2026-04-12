@@ -30,6 +30,7 @@ const AuthForm = ({ onSuccess, onClose }) => {
     }
   };
 
+  // Закрытие по клику на оверлей (задний фон)
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget && onClose) {
       onClose();
@@ -39,10 +40,10 @@ const AuthForm = ({ onSuccess, onClose }) => {
   return (
     <div style={overlayStyle} onClick={handleOverlayClick}>
       <div style={modalStyle}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2>{isLogin ? 'Вход' : 'Регистрация'}</h2>
           <button onClick={onClose} style={closeButtonStyle}>✖</button>
         </div>
-        <h2>{isLogin ? 'Вход' : 'Регистрация'}</h2>
         {error && <div style={{ color: 'red', marginBottom: '10px' }}>{error}</div>}
         <form onSubmit={handleSubmit}>
           <div style={fieldGroup}>
@@ -74,10 +75,10 @@ const overlayStyle = {
   backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000
 };
 const modalStyle = {
-  backgroundColor: 'white', padding: '20px', borderRadius: '8px', width: '300px', position: 'relative'
+  backgroundColor: 'white', padding: '20px', borderRadius: '8px', width: '300px'
 };
 const closeButtonStyle = {
-  background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#666'
+  background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer'
 };
 const fieldGroup = { marginBottom: '10px' };
 const inputStyle = { width: '100%', padding: '8px', marginTop: '4px' };
