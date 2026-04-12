@@ -4,6 +4,7 @@ import CatalogPage from './pages/CatalogPage';
 import ComparePage from './pages/ComparePage';
 import CartPage from './pages/CartPage';
 import AdminPage from './pages/AdminPage';
+import ProductPage from './pages/ProductPage';  // <-- новый импорт
 import AuthForm from './components/Auth/AuthForm';
 import { getCurrentUser, logout, isAdmin } from './services/authService';
 
@@ -55,6 +56,7 @@ function AppContent() {
         <Route path="/compare" element={<ComparePage />} />
         <Route path="/cart" element={<CartPage user={user} />} />
         <Route path="/admin" element={<AdminPage user={user} />} />
+        <Route path="/product/:id" element={<ProductPage user={user} />} />  {/* новый маршрут */}
       </Routes>
     </div>
   );

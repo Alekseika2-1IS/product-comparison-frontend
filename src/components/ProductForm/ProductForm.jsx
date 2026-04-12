@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { createProduct, updateProduct } from '../../services/api';
 
 const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
-  // Состояние для основных полей формы
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -10,17 +9,10 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
     category: '',
     imageUrl: ''
   });
-
-  // Состояние для списка характеристик
   const [specs, setSpecs] = useState([{ name: '', value: '' }]);
-
-  // Состояние для процесса загрузки
   const [loading, setLoading] = useState(false);
-
-  // Состояние для сообщений об ошибках
   const [error, setError] = useState('');
 
-  // Если передан productToEdit, заполняем форму
   useEffect(() => {
     if (productToEdit) {
       setFormData({
@@ -30,7 +22,6 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
         category: productToEdit.category || '',
         imageUrl: productToEdit.imageUrl || ''
       });
-
       if (productToEdit.specifications) {
         const specsArray = Object.entries(productToEdit.specifications).map(([name, value]) => ({
           name,
@@ -43,32 +34,27 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
     }
   }, [productToEdit]);
 
-  // Обработчик изменения основных полей
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Обработчик изменения характеристик
   const handleSpecChange = (index, field, value) => {
     const updatedSpecs = [...specs];
     updatedSpecs[index][field] = value;
     setSpecs(updatedSpecs);
   };
 
-  // Добавить характеристику
   const addSpec = () => {
     setSpecs([...specs, { name: '', value: '' }]);
   };
 
-  // Удалить характеристику
   const removeSpec = (index) => {
     if (specs.length > 1) {
       setSpecs(specs.filter((_, i) => i !== index));
     }
   };
 
-  // Валидация
   const validate = () => {
     if (!formData.name.trim()) return 'Название обязательно';
     if (!formData.price) return 'Цена обязательна';
@@ -77,7 +63,6 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
     return null;
   };
 
-  // Отправка формы
   const handleSubmit = async (e) => {
     e.preventDefault();
     const validationError = validate();
@@ -119,7 +104,6 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
     }
   };
 
-  // Стили для модального окна
   const modalOverlayStyle = {
     position: 'fixed',
     top: 0,
@@ -156,15 +140,12 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
     <div style={modalOverlayStyle} onClick={onClose}>
       <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
         <h2>{productToEdit ? 'Редактировать товар' : 'Добавить новый товар'}</h2>
-        
         {error && (
           <div style={{ color: 'red', marginBottom: '10px', padding: '8px', backgroundColor: '#ffeeee', borderRadius: '4px' }}>
             {error}
           </div>
         )}
-
         <form onSubmit={handleSubmit}>
-          {/* Основные поля */}
           <div style={{ marginBottom: '15px' }}>
             <label style={{ fontWeight: 'bold' }}>Название *</label>
             <input
@@ -177,8 +158,9 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
             />
           </div>
 
+          {/* ИСПРАВЛЕННЫЙ БЛОК ОПИСАНИЯ */}
           <div style={{ marginBottom: '15px' }}>
-            <label style={{ fontWeight: 'bold' }}>Описание</label>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Описание</label>
             <textarea
               name="description"
               value={formData.description}
@@ -224,7 +206,6 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
             />
           </div>
 
-          {/* Блок характеристик */}
           <h3>Характеристики</h3>
           {specs.map((spec, index) => (
             <div key={index} style={{ display: 'flex', gap: '10px', marginBottom: '10px', alignItems: 'center' }}>
@@ -266,7 +247,6 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
             + Добавить характеристику
           </button>
 
-          {/* Кнопки действий */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
             <button 
               type="button" 

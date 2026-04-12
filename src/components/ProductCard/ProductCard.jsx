@@ -28,14 +28,12 @@ const ProductCard = ({ product, onSelect, isSelected, onEdit, onDelete, user }) 
       alert('Выберите количество звезд');
       return;
     }
-    // В реальном сервисе добавим отзыв
-    // Для простоты пока просто покажем уведомление
+    // Здесь должен быть вызов сервиса добавления отзыва
     alert(`Спасибо за оценку ${selectedStars} звезд! Отзыв: ${reviewText || 'без комментария'}`);
-    // Здесь нужно вызвать addReview из ratingsService, но пока опустим для краткости
     setShowReviewForm(false);
     setReviewText('');
     setSelectedStars(0);
-    // Обновим рейтинг (временно)
+    // Обновим рейтинг
     const newInfo = getProductRating(product.id);
     setRatingInfo(newInfo);
   };
@@ -49,6 +47,16 @@ const ProductCard = ({ product, onSelect, isSelected, onEdit, onDelete, user }) 
     onSelect(product.id, e.target.checked);
   };
 
+  // Обработчик ошибки загрузки изображения
+  const handleImageError = (e) => {
+    e.target.src = 'https://via.placeholder.com/150?text=No+Image';
+  };
+
+  // Переход на страницу товара
+  const goToProductPage = () => {
+    window.location.href = `/product/${product.id}`;
+  };
+
   return (
     <div style={{
       border: '1px solid #ccc',
@@ -57,25 +65,32 @@ const ProductCard = ({ product, onSelect, isSelected, onEdit, onDelete, user }) 
       margin: '10px',
       width: '240px',
       boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-      backgroundColor: '#fff'
-    }}>
-      <img src={product.imageUrl || 'https://via.placeholder.com/150'} alt={product.name} style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '4px' }} />
+      backgroundColor: '#fff',
+      cursor: 'pointer'
+    }} onClick={goToProductPage}>
+      <img 
+        src={product.imageUrl || 'https://via.placeholder.com/150'} 
+        alt={product.name} 
+        style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '4px' }} 
+        onError={handleImageError}
+      />
       <h3 style={{ fontSize: '1rem', margin: '10px 0 5px' }}>{product.name}</h3>
       <p style={{ fontWeight: 'bold' }}>{product.price} руб.</p>
       
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      {/* Блок рейтинга – звёзды уже жёлтые в компоненте RatingStars, но для надёжности проверим */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} onClick={(e) => e.stopPropagation()}>
         <RatingStars rating={ratingInfo.average} onRate={handleRate} readonly={false} />
         <span>({ratingInfo.count})</span>
       </div>
 
-      <div style={{ margin: '10px 0' }}>
+      <div style={{ margin: '10px 0' }} onClick={(e) => e.stopPropagation()}>
         <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <input type="checkbox" checked={isSelected} onChange={handleCheckboxChange} />
           <span>Сравнить</span>
         </label>
       </div>
 
-      <div style={{ display: 'flex', gap: '5px', marginTop: '10px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '5px', marginTop: '10px', flexWrap: 'wrap' }} onClick={(e) => e.stopPropagation()}>
         <button onClick={handleAddToCart} style={{ flex: 1, backgroundColor: '#ffc107', border: 'none', borderRadius: '4px', padding: '5px', cursor: 'pointer' }}>
           В корзину
         </button>
@@ -88,7 +103,7 @@ const ProductCard = ({ product, onSelect, isSelected, onEdit, onDelete, user }) 
       </div>
 
       {showReviewForm && (
-        <div style={{ marginTop: '10px', borderTop: '1px solid #eee', paddingTop: '10px' }}>
+        <div style={{ marginTop: '10px', borderTop: '1px solid #eee', paddingTop: '10px' }} onClick={(e) => e.stopPropagation()}>
           <textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)} placeholder="Ваш отзыв (необязательно)" rows="2" style={{ width: '100%' }} />
           <div style={{ display: 'flex', gap: '5px', marginTop: '5px' }}>
             <button onClick={submitReview}>Отправить</button>

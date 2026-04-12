@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getProducts, deleteProduct } from '../services/api';
+import { getCurrentUser, isAdmin, logout } from '../services/authService';
+import { addToCart } from '../services/cartService';
+import { getAverageRating } from '../services/ratingService';
 import ProductCard from '../components/ProductCard/ProductCard';
 import ProductForm from '../components/ProductForm/ProductForm';
+import AuthForm from '../components/Auth/AuthForm';
+import RatingStars from '../components/Rating/RatingStars';
 
-const CatalogPage = ({ user }) => {
+const CatalogPage = () => {
   const [products, setProducts] = useState([]);
   const [selectedIds, setSelectedIds] = useState(() => {
     const saved = localStorage.getItem('selectedIds');
@@ -12,6 +17,9 @@ const CatalogPage = ({ user }) => {
   });
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [currentUser, setCurrentUser] = useState(getCurrentUser());
+  const [showAuth, setShowAuth] = useState(false);
+  const [ratings, setRatings] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,6 +34,11 @@ const CatalogPage = ({ user }) => {
     try {
       const response = await getProducts();
       setProducts(response.data);
+      const ratingsData = {};
+      for (const product of response.data) {
+        ratingsData[product.id] = getAverageRating(product.id);
+      }
+      setRatings(ratingsData);
     } catch (error) {
       console.error('Ошибка загрузки товаров:', error);
     }
@@ -56,16 +69,28 @@ const CatalogPage = ({ user }) => {
   };
 
   const handleAddClick = () => {
+    if (!currentUser) {
+      setShowAuth(true);
+      return;
+    }
     setEditingProduct(null);
     setShowForm(true);
   };
 
   const handleEditClick = (product) => {
+    if (!isAdmin()) {
+      alert('Только администратор может редактировать товары');
+      return;
+    }
     setEditingProduct(product);
     setShowForm(true);
   };
 
   const handleDeleteClick = async (id) => {
+    if (!isAdmin()) {
+      alert('Только администратор может удалять товары');
+      return;
+    }
     if (window.confirm('Вы уверены, что хотите удалить товар?')) {
       try {
         await deleteProduct(id);
@@ -84,36 +109,72 @@ const CatalogPage = ({ user }) => {
     } else {
       setProducts([...products, savedProduct]);
     }
+    fetchProducts();
+  };
+
+  const handleAddToCart = (product) => {
+    if (!currentUser) {
+      setShowAuth(true);
+      return;
+    }
+    addToCart(product.id, 1);
+    alert(`${product.name} добавлен в корзину`);
+  };
+
+  const handleLogout = () => {
+    logout();
+    setCurrentUser(null);
+    navigate('/');
+  };
+
+  const handleAuthSuccess = (user) => {
+    setCurrentUser(user);
+    setShowAuth(false);
   };
 
   return (
     <div>
-      <h1>Каталог товаров</h1>
-      {user && user.role === 'admin' && (
-        <button onClick={handleAddClick} style={{ marginBottom: '20px' }}>+ Добавить товар</button>
-      )}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1>Каталог товаров</h1>
+        <div>
+          {!currentUser ? (
+            <button onClick={() => setShowAuth(true)} style={buttonStyle}>Войти</button>
+          ) : (
+            <>
+              <span>Привет, {currentUser.login} </span>
+              <button onClick={() => navigate('/cart')} style={buttonStyle}>Корзина</button>
+              {isAdmin() && (
+                <button onClick={() => navigate('/admin')} style={buttonStyle}>Админ-панель</button>
+              )}
+              <button onClick={handleLogout} style={buttonStyle}>Выйти</button>
+            </>
+          )}
+        </div>
+      </div>
+
+      <button onClick={handleAddClick} style={{ marginBottom: '20px' }}>+ Добавить товар</button>
 
       <div style={{ marginBottom: '20px' }}>
         <span>Выбрано: {selectedIds.length} товаров</span>
-        <button onClick={handleCompare} disabled={selectedIds.length < 2} style={{ marginLeft: '10px' }}>
-          Сравнить ({selectedIds.length})
-        </button>
-        {selectedIds.length > 0 && (
-          <button onClick={handleClear} style={{ marginLeft: '10px' }}>Очистить выбор</button>
-        )}
+        <button onClick={handleCompare} disabled={selectedIds.length < 2}>Сравнить ({selectedIds.length})</button>
+        {selectedIds.length > 0 && <button onClick={handleClear}>Очистить выбор</button>}
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
         {products.map(product => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            onSelect={handleSelect}
-            isSelected={selectedIds.includes(product.id)}
-            onEdit={handleEditClick}
-            onDelete={handleDeleteClick}
-            user={user}
-          />
+          <div key={product.id} style={{ position: 'relative', width: '220px' }}>
+            <ProductCard
+              product={product}
+              onSelect={handleSelect}
+              isSelected={selectedIds.includes(product.id)}
+              onEdit={handleEditClick}
+              onDelete={handleDeleteClick}
+              onAddToCart={handleAddToCart}
+            />
+            <div style={{ marginTop: '5px' }}>
+              <RatingStars productId={product.id} onRatingUpdate={fetchProducts} />
+            </div>
+          </div>
         ))}
       </div>
 
@@ -124,8 +185,20 @@ const CatalogPage = ({ user }) => {
           onProductSaved={handleProductSaved}
         />
       )}
+
+      {showAuth && <AuthForm onSuccess={handleAuthSuccess} onClose={() => setShowAuth(false)} />}
     </div>
   );
+};
+
+const buttonStyle = {
+  marginLeft: '10px',
+  padding: '5px 10px',
+  backgroundColor: '#2196F3',
+  color: 'white',
+  border: 'none',
+  borderRadius: '4px',
+  cursor: 'pointer'
 };
 
 export default CatalogPage;
