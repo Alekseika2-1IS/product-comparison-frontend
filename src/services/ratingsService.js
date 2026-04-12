@@ -1,32 +1,72 @@
+// src/services/ratingsService.js
+
 const RATINGS_KEY = 'product_ratings';
+const REVIEWS_KEY = 'product_reviews';
 
-// Получить все рейтинги
-export const getAllRatings = () => {
-  const data = localStorage.getItem(RATINGS_KEY);
-  return data ? JSON.parse(data) : {};
+const init = () => {
+  if (!localStorage.getItem(RATINGS_KEY)) {
+    localStorage.setItem(RATINGS_KEY, JSON.stringify([]));
+  }
+  if (!localStorage.getItem(REVIEWS_KEY)) {
+    localStorage.setItem(REVIEWS_KEY, JSON.stringify([]));
+  }
 };
 
-// Получить рейтинг товара
 export const getProductRating = (productId) => {
-  const ratings = getAllRatings();
-  const productRatings = ratings[productId];
-  if (!productRatings || productRatings.length === 0) return { average: 0, count: 0 };
-  const sum = productRatings.reduce((acc, r) => acc + r.stars, 0);
-  return { average: sum / productRatings.length, count: productRatings.length, reviews: productRatings };
+  init();
+  const ratings = JSON.parse(localStorage.getItem(RATINGS_KEY));
+  const productRatings = ratings.filter(r => r.productId === productId);
+  const average = productRatings.length
+    ? productRatings.reduce((sum, r) => sum + r.rating, 0) / productRatings.length
+    : 0;
+  return { average, count: productRatings.length };
 };
 
-// Добавить отзыв и оценку
-export const addReview = (productId, userId, userName, stars, comment) => {
-  const ratings = getAllRatings();
-  if (!ratings[productId]) ratings[productId] = [];
-  ratings[productId].push({
-    id: Date.now(),
-    userId,
-    userName,
-    stars,
-    comment,
-    date: new Date().toISOString()
-  });
+export const getRating = (productId) => {
+  return getProductRating(productId).average;
+};
+
+export const getUserRating = (productId, userId) => {
+  init();
+  const ratings = JSON.parse(localStorage.getItem(RATINGS_KEY));
+  const userRating = ratings.find(r => r.productId === productId && r.userId === userId);
+  return userRating ? userRating.rating : null;
+};
+
+export const setRating = (productId, userId, rating) => {
+  init();
+  const ratings = JSON.parse(localStorage.getItem(RATINGS_KEY));
+  const existingIndex = ratings.findIndex(r => r.productId === productId && r.userId === userId);
+  if (existingIndex !== -1) {
+    ratings[existingIndex].rating = rating;
+  } else {
+    ratings.push({ productId, userId, rating });
+  }
   localStorage.setItem(RATINGS_KEY, JSON.stringify(ratings));
-  return getProductRating(productId);
+};
+
+export const addReview = (productId, userId, author, text, rating) => {
+  init();
+  if (rating) {
+    setRating(productId, userId, rating);
+  }
+  const reviews = JSON.parse(localStorage.getItem(REVIEWS_KEY));
+  const newReview = {
+    id: Date.now(),
+    productId,
+    userId,
+    author,
+    text,
+    rating,
+    date: new Date().toLocaleString()
+  };
+  reviews.push(newReview);
+  localStorage.setItem(REVIEWS_KEY, JSON.stringify(reviews));
+  return newReview;
+};
+
+export const getReviews = (productId) => {
+  init();
+  const reviews = JSON.parse(localStorage.getItem(REVIEWS_KEY));
+  return reviews.filter(r => r.productId === productId);
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getRating, setRating, getUserRating } from '../../services/ratingService';
+import { getRating, setRating, getUserRating } from '../../services/ratingsService';
 import { getCurrentUser } from '../../services/authService';
 
 const RatingStars = ({ productId, onRatingUpdate }) => {
