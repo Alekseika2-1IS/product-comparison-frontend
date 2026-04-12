@@ -21,7 +21,13 @@ const AuthForm = ({ onSuccess, onClose }) => {
         setError('Почта обязательна');
         return;
       }
-      result = register(formData.login, formData.password, formData.email);
+      const regResult = register(formData.login, formData.password, formData.email);
+      if (regResult.success) {
+        // Автоматический вход после регистрации
+        result = login(formData.login, formData.password);
+      } else {
+        result = regResult;
+      }
     }
     if (result.success) {
       if (onSuccess) onSuccess(result.user);
@@ -30,7 +36,6 @@ const AuthForm = ({ onSuccess, onClose }) => {
     }
   };
 
-  // Закрытие по клику на оверлей (задний фон)
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget && onClose) {
       onClose();
@@ -70,6 +75,7 @@ const AuthForm = ({ onSuccess, onClose }) => {
   );
 };
 
+// Стили (оставляем без изменений)
 const overlayStyle = {
   position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
   backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000
