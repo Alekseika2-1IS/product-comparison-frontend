@@ -11,6 +11,17 @@ const ComparePage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedProducts, setSelectedProducts] = useState([]);
 
+  // Список разрешённых характеристик (только основные)
+  const allowedSpecs = [
+    'Операционная система',
+    'Процессор',
+    'Экран',
+    'Память (ОЗУ/ПЗУ)',
+    'Камера',
+    'Аккумулятор',
+    'Связь и подключение'
+  ];
+
   // Загрузка всех товаров
   useEffect(() => {
     const fetchProducts = async () => {
@@ -49,88 +60,107 @@ const ComparePage = () => {
   const getCpuScore = (cpuString) => {
     if (!cpuString) return 0;
     const str = cpuString.toLowerCase();
-    // Apple
     if (str.includes('apple a19 pro')) return 100;
-    if (str.includes('apple a18')) return 95;
-    if (str.includes('apple a17')) return 90;
-    if (str.includes('apple a16')) return 85;
-    // Qualcomm Snapdragon
+    if (str.includes('apple a19')) return 95;
+    if (str.includes('apple a18')) return 90;
+    if (str.includes('apple a17')) return 85;
+    if (str.includes('apple a16')) return 80;
     if (str.includes('snapdragon 8 elite')) return 98;
     if (str.includes('snapdragon 8 gen 3')) return 92;
     if (str.includes('snapdragon 8 gen 2')) return 88;
     if (str.includes('snapdragon 8s gen 3')) return 86;
     if (str.includes('snapdragon 7')) return 70;
-    // MediaTek
     if (str.includes('mediatek dimensity 9300')) return 94;
     if (str.includes('mediatek dimensity 9200')) return 87;
-    if (str.includes('mediatek helio g200')) return 65;
+    if (str.includes('mediatek helio g99')) return 65;
     if (str.includes('mediatek helio')) return 55;
-    // Samsung Exynos
     if (str.includes('exynos 2400')) return 82;
+    if (str.includes('exynos 1580')) return 68;
     if (str.includes('exynos 2200')) return 75;
-    // Google Tensor
-    if (str.includes('tensor g4')) return 80;
-    // Другие
     return 40;
   };
 
   // ----------------------------------------------------------------------
-  // 2. Извлечение числового значения из строки (для памяти, частоты, ёмкости и т.д.)
+  // 2. Извлечение числового значения с учётом единиц и суммирования для камер
   // ----------------------------------------------------------------------
   const extractNumeric = (value, specName) => {
-    if (value === '—') return NaN;
+    if (!value || value === '—') return NaN;
     const str = value.toString().toLowerCase();
+    const lowerName = specName.toLowerCase();
 
-    // Для частоты обновления (Гц)
-    if (specName.toLowerCase().includes('гц') || str.includes('гц')) {
-      const match = str.match(/(\d+)\s*гц/i);
-      return match ? parseInt(match[1], 10) : NaN;
+    // Для камер: суммируем все числа, разделённые '+'
+    if (lowerName.includes('камер')) {
+      const numbers = str.match(/\d+/g);
+      if (numbers) {
+        return numbers.reduce((sum, num) => sum + parseInt(num, 10), 0);
+      }
+      return NaN;
     }
-    // Для мегапикселей (Мп)
-    if (specName.toLowerCase().includes('камер') || str.includes('мп')) {
-      const match = str.match(/(\d+)\s*мп/i);
-      return match ? parseInt(match[1], 10) : NaN;
-    }
-    // Для памяти (ГБ)
-    if (specName.toLowerCase().includes('память') || str.includes('гб')) {
-      const match = str.match(/(\d+)\s*гб/i);
-      return match ? parseInt(match[1], 10) : NaN;
-    }
+
     // Для ёмкости аккумулятора (мАч)
-    if (specName.toLowerCase().includes('питание') || str.includes('мач') || str.includes('ма*ч')) {
+    if (lowerName.includes('аккумулятор') || str.includes('мач')) {
       const match = str.match(/(\d+)\s*ма/i);
       return match ? parseInt(match[1], 10) : NaN;
     }
+
+    // Для частоты обновления (Гц)
+    if (lowerName.includes('экран') || str.includes('гц')) {
+      const match = str.match(/(\d+)\s*гц/i);
+      return match ? parseInt(match[1], 10) : NaN;
+    }
+
+    // Для памяти (ГБ)
+    if (lowerName.includes('память') || str.includes('гб')) {
+      const match = str.match(/(\d+)\s*гб/i);
+      return match ? parseInt(match[1], 10) : NaN;
+    }
+
     // Для диагонали (дюймы)
-    if (specName.toLowerCase().includes('дисплей') || str.includes('дюйм')) {
-      const match = str.match(/(\d+\.?\d*)\s*["']/i);
+    if (lowerName.includes('экран') && str.includes('"')) {
+      const match = str.match(/(\d+\.?\d*)\s*"/);
       if (match) return parseFloat(match[1]);
       const match2 = str.match(/(\d+\.?\d*)\s*дюйм/i);
       return match2 ? parseFloat(match2[1]) : NaN;
     }
-    // Универсальное: если есть число, берём первое число
+
+    // Для цены (если передадим отдельно)
+    if (lowerName.includes('цена')) {
+      const match = str.match(/(\d+)/);
+      return match ? parseInt(match[1], 10) : NaN;
+    }
+
+    // Универсальное: первое число в строке
     const numMatch = str.match(/(\d+(?:\.\d+)?)/);
     return numMatch ? parseFloat(numMatch[1]) : NaN;
   };
 
   // ----------------------------------------------------------------------
-  // 3. Определение типа характеристики (числовая/качественная) и правил сравнения
+  // 3. Определение типа характеристики (числовая/качественная)
   // ----------------------------------------------------------------------
-  const isNumericSpec = (specName, value) => {
+  const isNumericSpec = (specName) => {
     const numericKeywords = [
-      'цена', 'память', 'гб', 'мгц', 'ггц', 'мач', 'дюйм', 'гц', 'мп',
-      'объем', 'частота', 'тактовая частота', 'разрешение', 'пикселей', 'мегапиксель'
+      'процессор', 'экран', 'память', 'камера', 'аккумулятор',
+      'цена', 'гб', 'мп', 'мач', 'гц', 'дюйм'
     ];
     const lowerName = specName.toLowerCase();
-    const hasKeyword = numericKeywords.some(keyword => lowerName.includes(keyword));
-    const extracted = extractNumeric(value, specName);
-    return hasKeyword || !isNaN(extracted);
+    return numericKeywords.some(kw => lowerName.includes(kw));
   };
 
-  const getComparisonStatus = (specName, values, currentValue, productIndex, productsArray) => {
+  // ----------------------------------------------------------------------
+  // 4. Основная логика сравнения для ячейки
+  // ----------------------------------------------------------------------
+  const getCellStyle = (specName, values, currentValue, productIndex) => {
     const lowerName = specName.toLowerCase();
 
-    // Специальная обработка для процессоров
+    // --- Особое правило для операционной системы ---
+    if (lowerName === 'операционная система') {
+      const uniqueValues = [...new Set(values)];
+      if (uniqueValues.length === 1) return null; // одинаковые – не выделяем
+      if (currentValue === 'iOS') return 'best';
+      return 'different'; // Android и другие – жёлтый
+    }
+
+    // --- Для процессора используем рейтинг ---
     if (lowerName.includes('процессор')) {
       const scores = values.map(v => getCpuScore(v));
       if (scores.some(isNaN)) return null;
@@ -139,14 +169,14 @@ const ComparePage = () => {
       const currentScore = getCpuScore(currentValue);
       if (currentScore === bestScore && bestScore !== worstScore) return 'best';
       if (currentScore === worstScore && bestScore !== worstScore) return 'worst';
-      return null;
+      return 'different';
     }
 
-    // Для числовых характеристик
-    if (isNumericSpec(specName, currentValue)) {
+    // --- Для числовых характеристик ---
+    if (isNumericSpec(specName)) {
       const numericValues = values.map(v => extractNumeric(v, specName));
       if (numericValues.some(isNaN)) return null;
-      const isPrice = lowerName.includes('цен');
+      const isPrice = lowerName.includes('цен') || lowerName === 'цена';
       if (isPrice) {
         const minVal = Math.min(...numericValues);
         const maxVal = Math.max(...numericValues);
@@ -160,30 +190,40 @@ const ComparePage = () => {
         if (numericValues[productIndex] === maxVal) return 'best';
         if (numericValues[productIndex] === minVal) return 'worst';
       }
-      return null;
+      return 'different';
     }
-    return null; // для нечисловых не даём зелёный/красный (будет жёлтый, если отличаются)
+
+    // --- Для нечисловых характеристик (например, "Связь и подключение") ---
+    if (values.some(v => v !== values[0])) {
+      return 'different';
+    }
+    return null;
   };
 
   // ----------------------------------------------------------------------
-  // 4. Построение таблицы
+  // 5. Построение таблицы
   // ----------------------------------------------------------------------
   const renderComparisonTable = () => {
     if (loading) return <div>Загрузка...</div>;
     if (selectedProducts.length === 0) return <div>Выбранные товары не найдены.</div>;
 
-    // Собираем все характеристики
+    // Собираем все характеристики из выбранных товаров
     const allSpecKeys = selectedProducts.flatMap(product =>
       Object.keys(product.specifications || {})
     );
     const uniqueSpecs = [...new Set(allSpecKeys)];
 
-    // Фильтруем: оставляем только те, у которых не все значения одинаковы
+    // Фильтруем: оставляем только разрешённые и те, у которых не все значения одинаковы
     const filteredSpecs = uniqueSpecs.filter(specName => {
+      if (!allowedSpecs.includes(specName)) return false;
       const values = selectedProducts.map(p => p.specifications?.[specName] || '—');
       const allEqual = values.every(v => v === values[0]);
       return !allEqual;
     });
+
+    // Сортируем характеристики для удобства (можно по желанию)
+    const order = allowedSpecs;
+    filteredSpecs.sort((a, b) => order.indexOf(a) - order.indexOf(b));
 
     return (
       <div>
@@ -196,9 +236,7 @@ const ComparePage = () => {
               <tr>
                 <th style={cellStyle}>Характеристика</th>
                 {selectedProducts.map(product => (
-                  <th key={product.id} style={cellStyle}>
-                    {product.name}
-                  </th>
+                  <th key={product.id} style={cellStyle}>{product.name}</th>
                 ))}
               </tr>
             </thead>
@@ -211,20 +249,18 @@ const ComparePage = () => {
                     {selectedProducts.map((product, idx) => {
                       const value = values[idx];
                       let cellStyleExtended = { ...cellStyle };
-                      // Определяем статус сравнения (зелёный/красный)
-                      const status = getComparisonStatus(specName, values, value, idx, selectedProducts);
+                      const status = getCellStyle(specName, values, value, idx);
                       if (status === 'best') {
                         cellStyleExtended = { ...cellStyleExtended, backgroundColor: '#d4edda', color: '#155724' };
                       } else if (status === 'worst') {
                         cellStyleExtended = { ...cellStyleExtended, backgroundColor: '#f8d7da', color: '#721c24' };
-                      } else if (value !== values[0]) {
-                        // Для нечисловых или не сравнимых – жёлтая подсветка отличий
+                      } else if (status === 'different') {
                         cellStyleExtended = { ...cellStyleExtended, backgroundColor: '#fff3cd' };
                       }
                       return (
                         <td key={product.id} style={cellStyleExtended}>
                           {value}
-                        </td>
+                        </table>
                       );
                     })}
                   </tr>
