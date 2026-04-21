@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { createProduct, updateProduct } from '../../services/api';
 
 const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
-  // Основные поля товара
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -11,26 +10,22 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
     imageUrl: ''
   });
 
-  // Состояние для предопределённых характеристик
   const [specsFixed, setSpecsFixed] = useState({
-    os: '',              // Операционная система
-    cpu: '',             // Процессор
-    display: '',         // Экран
-    memory: '',          // Память (ОЗУ/ПЗУ)
-    camera: '',          // Камера
-    battery: '',         // Аккумулятор
-    connectivity: '',    // Связь и подключение
-    material: '',        // Материал корпуса
-    features: ''         // Дополнительные функции
+    os: '',
+    cpu: '',
+    display: '',
+    memory: '',
+    camera: '',
+    battery: '',
+    connectivity: '',
+    material: '',
+    features: ''
   });
 
-  // Состояние для дополнительных характеристик (динамические)
   const [extraSpecs, setExtraSpecs] = useState([{ name: '', value: '' }]);
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Если редактируем товар – заполняем форму из productToEdit
   useEffect(() => {
     if (productToEdit) {
       setFormData({
@@ -41,7 +36,6 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
         imageUrl: productToEdit.imageUrl || ''
       });
 
-      // Заполняем предопределённые характеристики из productToEdit.specifications
       const specs = productToEdit.specifications || {};
       setSpecsFixed({
         os: specs['Операционная система'] || '',
@@ -55,7 +49,6 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
         features: specs['Дополнительные функции'] || ''
       });
 
-      // Заполняем дополнительные характеристики
       const otherSpecs = Object.entries(specs).filter(([key]) =>
         !['Операционная система', 'Процессор', 'Экран', 'Память (ОЗУ/ПЗУ)', 'Камера', 'Аккумулятор', 'Связь и подключение', 'Материал корпуса', 'Дополнительные функции'].includes(key)
       );
@@ -67,18 +60,15 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
     }
   }, [productToEdit]);
 
-  // Обработчики для основных полей
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Обработчики для предопределённых характеристик
   const handleFixedSpecChange = (field, value) => {
     setSpecsFixed(prev => ({ ...prev, [field]: value }));
   };
 
-  // Обработчики для дополнительных характеристик
   const handleExtraSpecChange = (index, field, value) => {
     const updated = [...extraSpecs];
     updated[index][field] = value;
@@ -95,7 +85,6 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
     }
   };
 
-  // Валидация основных полей
   const validate = () => {
     if (!formData.name.trim()) return 'Название обязательно';
     if (!formData.price) return 'Цена обязательна';
@@ -104,7 +93,6 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
     return null;
   };
 
-  // Сборка объекта specifications из предопределённых и дополнительных
   const buildSpecifications = () => {
     const specs = {};
     if (specsFixed.os.trim()) specs['Операционная система'] = specsFixed.os.trim();
@@ -117,7 +105,6 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
     if (specsFixed.material.trim()) specs['Материал корпуса'] = specsFixed.material.trim();
     if (specsFixed.features.trim()) specs['Дополнительные функции'] = specsFixed.features.trim();
 
-    // Добавляем дополнительные характеристики
     extraSpecs.forEach(spec => {
       if (spec.name.trim() && spec.value.trim()) {
         specs[spec.name.trim()] = spec.value.trim();
@@ -135,7 +122,6 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
     }
 
     const specifications = buildSpecifications();
-
     const productData = {
       ...formData,
       price: Number(formData.price),
@@ -162,7 +148,6 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
     }
   };
 
-  // Стили (можно оставить как есть или вынести в CSS)
   const modalOverlayStyle = {
     position: 'fixed',
     top: 0,
@@ -215,7 +200,6 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
         <h2>{productToEdit ? 'Редактировать товар' : 'Добавить новый товар'}</h2>
         {error && <div style={{ color: 'red', marginBottom: '10px' }}>{error}</div>}
         <form onSubmit={handleSubmit}>
-          {/* Основные поля */}
           <div style={{ marginBottom: '15px' }}>
             <label style={labelStyle}>Название *</label>
             <input type="text" name="name" value={formData.name} onChange={handleChange} style={fieldStyle} disabled={loading} />
@@ -237,7 +221,6 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
             <input type="text" name="imageUrl" value={formData.imageUrl} onChange={handleChange} style={fieldStyle} disabled={loading} />
           </div>
 
-          {/* Предопределённые характеристики */}
           <h3 style={sectionTitle}>Основные характеристики</h3>
 
           <div style={{ marginBottom: '10px' }}>
@@ -250,7 +233,7 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
           </div>
           <div style={{ marginBottom: '10px' }}>
             <label style={labelStyle}>Экран</label>
-            <input type="text" value={specsFixed.display} onChange={(e) => handleFixedSpecChange('display', e.target.value)} placeholder="6.7\", AMOLED, 120 Гц, 2560x1440" style={fieldStyle} disabled={loading} />
+            <input type="text" value={specsFixed.display} onChange={(e) => handleFixedSpecChange('display', e.target.value)} placeholder="6.7', AMOLED, 120 Гц, 2560x1440" style={fieldStyle} disabled={loading} />
           </div>
           <div style={{ marginBottom: '10px' }}>
             <label style={labelStyle}>Память (ОЗУ/ПЗУ)</label>
@@ -266,7 +249,7 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
           </div>
           <div style={{ marginBottom: '10px' }}>
             <label style={labelStyle}>Связь и подключение</label>
-            <input type="text" value={specsFixed.connectivity} onChange={(e) => handleFixedSpecChange('connectivity', e.target.value)} placeholder="5G, Wi‑Fi 6, Bluetooth 5.3, NFC" style={fieldStyle} disabled={loading} />
+            <input type="text" value={specsFixed.connectivity} onChange={(e) => handleFixedSpecChange('connectivity', e.target.value)} placeholder="5G, Wi-Fi 6, Bluetooth 5.3, NFC" style={fieldStyle} disabled={loading} />
           </div>
           <div style={{ marginBottom: '10px' }}>
             <label style={labelStyle}>Материал корпуса</label>
@@ -277,7 +260,6 @@ const ProductForm = ({ productToEdit = null, onClose, onProductSaved }) => {
             <input type="text" value={specsFixed.features} onChange={(e) => handleFixedSpecChange('features', e.target.value)} placeholder="Сканер отпечатков, IP68, стереодинамики" style={fieldStyle} disabled={loading} />
           </div>
 
-          {/* Дополнительные характеристики (динамические) */}
           <h3 style={sectionTitle}>Дополнительные характеристики</h3>
           {extraSpecs.map((spec, index) => (
             <div key={index} style={{ display: 'flex', gap: '10px', marginBottom: '10px', alignItems: 'center' }}>
