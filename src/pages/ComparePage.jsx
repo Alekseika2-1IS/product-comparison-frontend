@@ -50,7 +50,9 @@ const ComparePage = () => {
     }
   }, [selectedIds, navigate]);
 
-  // Рейтинг процессоров
+  // --------------------------------------------------------------
+  // 1. Оценка процессора
+  // --------------------------------------------------------------
   const getCpuScore = (cpuString) => {
     if (!cpuString) return 0;
     const str = cpuString.toLowerCase();
@@ -74,148 +76,221 @@ const ComparePage = () => {
     return 40;
   };
 
-  // Оценка связи и подключения (чем больше, тем лучше)
-  const getConnectivityScore = (value) => {
-    if (!value) return 0;
-    const str = value.toString().toLowerCase();
+  // --------------------------------------------------------------
+  // 2. Оценка экрана (балл от 0 до 100)
+  // --------------------------------------------------------------
+  const getScreenScore = (screenStr) => {
+    if (!screenStr || screenStr === '—') return 0;
+    const str = screenStr.toLowerCase();
     let score = 0;
-    if (str.includes('5g')) score += 10;
-    if (str.includes('4g')) score += 5;
-    if (str.includes('3g')) score += 2;
-    if (str.includes('esim')) score += 8;
-    if (str.includes('nfc')) score += 3;
-    if (str.includes('wi-fi 6')) score += 4;
-    if (str.includes('wi-fi 5')) score += 2;
-    if (str.includes('bluetooth 5.3')) score += 3;
-    if (str.includes('bluetooth 5.2')) score += 2;
+
+    // Диагональ (чем больше, тем лучше для мультимедиа, но не перегружаем)
+    const inchMatch = str.match(/(\d+\.?\d*)\s*["']/);
+    if (inchMatch) {
+      const inch = parseFloat(inchMatch[1]);
+      if (inch >= 6.7) score += 20;
+      else if (inch >= 6.3) score += 15;
+      else if (inch >= 5.8) score += 10;
+      else score += 5;
+    }
+
+    // Разрешение -> PPI
+    let ppi = 0;
+    const resMatch = str.match(/(\d+)x(\d+)/);
+    if (resMatch && inchMatch) {
+      const width = parseInt(resMatch[1], 10);
+      const height = parseInt(resMatch[2], 10);
+      const diag = parseFloat(inchMatch[1]);
+      if (diag > 0) {
+        const ppiVal = Math.sqrt(width * width + height * height) / diag;
+        if (ppiVal >= 450) score += 30;
+        else if (ppiVal >= 400) score += 25;
+        else if (ppiVal >= 350) score += 20;
+        else score += 10;
+      }
+    } else {
+      // Если нет точного разрешения, даём средний балл
+      score += 15;
+    }
+
+    // Тип матрицы
+    if (str.includes('super retina xdr')) score += 25;
+    else if (str.includes('dynamic amoled 2x')) score += 22;
+    else if (str.includes('amoled') || str.includes('oled')) score += 20;
+    else if (str.includes('ips')) score += 12;
+    else score += 5;
+
+    // Частота обновления
+    const hzMatch = str.match(/(\d+)\s*гц/);
+    if (hzMatch) {
+      const hz = parseInt(hzMatch[1], 10);
+      if (hz >= 120) score += 20;
+      else if (hz >= 90) score += 15;
+      else if (hz >= 60) score += 10;
+      else score += 5;
+    }
+
+    // HDR
+    if (str.includes('hdr')) score += 10;
+    if (str.includes('dolby vision')) score += 5;
+
+    // Яркость (если есть)
+    const brightMatch = str.match(/(\d+)\s*нит/);
+    if (brightMatch) {
+      const nits = parseInt(brightMatch[1], 10);
+      if (nits >= 1500) score += 15;
+      else if (nits >= 1000) score += 10;
+      else if (nits >= 600) score += 5;
+    }
+
+    return Math.min(score, 100);
+  };
+
+  // --------------------------------------------------------------
+  // 3. Оценка памяти (ОЗУ*1000 + ПЗУ)
+  // --------------------------------------------------------------
+  const getMemoryScore = (memStr) => {
+    if (!memStr || memStr === '—') return 0;
+    const str = memStr.toLowerCase();
+    let ram = 0, rom = 0;
+    const ramMatch = str.match(/(\d+)\s*гб/i);
+    if (ramMatch) ram = parseInt(ramMatch[1], 10);
+    const romMatch = str.match(/(\d+)\s*гб\s*\/\s*(\d+)\s*гб/i);
+    if (romMatch) {
+      ram = parseInt(romMatch[1], 10);
+      rom = parseInt(romMatch[2], 10);
+    } else {
+      const secondNum = str.match(/\/(\d+)\s*гб/i);
+      if (secondNum) rom = parseInt(secondNum[1], 10);
+      else rom = 0;
+    }
+    return ram * 1000 + rom;
+  };
+
+  // --------------------------------------------------------------
+  // 4. Оценка камеры (сумма Мп)
+  // --------------------------------------------------------------
+  const getCameraScore = (camStr) => {
+    if (!camStr || camStr === '—') return 0;
+    const numbers = camStr.match(/\d+/g);
+    if (numbers) {
+      return numbers.reduce((sum, num) => sum + parseInt(num, 10), 0);
+    }
+    return 0;
+  };
+
+  // --------------------------------------------------------------
+  // 5. Оценка аккумулятора (ёмкость в мАч)
+  // --------------------------------------------------------------
+  const getBatteryScore = (batStr) => {
+    if (!batStr || batStr === '—') return 0;
+    const match = batStr.match(/(\d+)\s*ма/i);
+    return match ? parseInt(match[1], 10) : 0;
+  };
+
+  // --------------------------------------------------------------
+  // 6. Оценка связи (балл за технологии)
+  // --------------------------------------------------------------
+  const getConnectivityScore = (connStr) => {
+    if (!connStr || connStr === '—') return 0;
+    const str = connStr.toLowerCase();
+    let score = 0;
+    if (str.includes('5g')) score += 20;
+    if (str.includes('esim')) score += 10;
+    if (str.includes('wi-fi 7') || str.includes('wi-fi 6e')) score += 15;
+    else if (str.includes('wi-fi 6')) score += 12;
+    else if (str.includes('wi-fi 5')) score += 8;
+    if (str.includes('bluetooth 5.3') || str.includes('bluetooth 5.4')) score += 8;
+    else if (str.includes('bluetooth 5.2') || str.includes('bluetooth 5.1')) score += 5;
+    else if (str.includes('bluetooth 5')) score += 3;
+    if (str.includes('nfc')) score += 5;
     return score;
   };
 
-  // Извлечение числового значения с учётом специфики
+  // --------------------------------------------------------------
+  // 7. Универсальная функция для извлечения числового значения (для числовых характеристик)
+  // --------------------------------------------------------------
   const extractNumeric = (value, specName) => {
     if (!value || value === '—') return NaN;
-    const str = value.toString().toLowerCase();
     const lowerName = specName.toLowerCase();
-
-    // Для камеры: суммируем все числа
-    if (lowerName.includes('камер')) {
-      const numbers = str.match(/\d+/g);
-      if (numbers) {
-        return numbers.reduce((sum, num) => sum + parseInt(num, 10), 0);
-      }
+    if (lowerName.includes('экран')) {
+      // не используем числовое извлечение, там сложный балл
       return NaN;
     }
-
-    // Для памяти (ОЗУ/ПЗУ) – извлекаем ОЗУ (первое число) и ПЗУ (второе), можно вернуть комбинированное значение
-    if (lowerName.includes('память') && str.includes('гб')) {
-      const numbers = str.match(/\d+/g);
-      if (numbers && numbers.length >= 2) {
-        // Возвращаем ОЗУ * 1000 + ПЗУ (чтобы ОЗУ было приоритетнее)
-        return parseInt(numbers[0], 10) * 1000 + parseInt(numbers[1], 10);
-      }
-      if (numbers && numbers.length === 1) {
-        return parseInt(numbers[0], 10);
-      }
-      return NaN;
-    }
-
-    // Для аккумулятора (мАч)
-    if (lowerName.includes('аккумулятор') || str.includes('мач')) {
-      const match = str.match(/(\d+)\s*ма/i);
-      return match ? parseInt(match[1], 10) : NaN;
-    }
-
-    // Для частоты обновления экрана (Гц)
-    if (lowerName.includes('экран') && str.includes('гц')) {
-      const match = str.match(/(\d+)\s*гц/i);
-      return match ? parseInt(match[1], 10) : NaN;
-    }
-
-    // Для диагонали экрана (дюймы)
-    if (lowerName.includes('экран') && str.includes('"')) {
-      const match = str.match(/(\d+\.?\d*)\s*"/);
-      if (match) return parseFloat(match[1]);
-      const match2 = str.match(/(\d+\.?\d*)\s*дюйм/i);
-      return match2 ? parseFloat(match2[1]) : NaN;
-    }
-
-    // Универсальное: первое число
-    const numMatch = str.match(/(\d+(?:\.\d+)?)/);
-    return numMatch ? parseFloat(numMatch[1]) : NaN;
+    if (lowerName.includes('память')) return getMemoryScore(value);
+    if (lowerName.includes('камер')) return getCameraScore(value);
+    if (lowerName.includes('аккумулятор')) return getBatteryScore(value);
+    if (lowerName.includes('связь')) return getConnectivityScore(value);
+    // универсальное число
+    const num = parseFloat(value.replace(/[^0-9.]/g, ''));
+    return isNaN(num) ? NaN : num;
   };
 
-  const isNumericSpec = (specName) => {
-    const numericKeywords = [
-      'процессор', 'экран', 'память', 'камера', 'аккумулятор',
-      'цена', 'гб', 'мп', 'мач', 'гц', 'дюйм'
-    ];
-    const lowerName = specName.toLowerCase();
-    return numericKeywords.some(kw => lowerName.includes(kw));
-  };
-
-  const getCellStyle = (specName, values, currentValue, productIndex) => {
+  // --------------------------------------------------------------
+  // 8. Определение лучшего/худшего/среднего для массива значений
+  // --------------------------------------------------------------
+  const getComparisonStatus = (specName, values, currentValue, idx) => {
     const lowerName = specName.toLowerCase();
 
-    // Операционная система
+    // Особое правило для ОС
     if (lowerName === 'операционная система') {
-      const uniqueValues = [...new Set(values)];
-      if (uniqueValues.length === 1) return null;
+      const unique = [...new Set(values)];
+      if (unique.length === 1) return null;
       if (currentValue === 'iOS') return 'best';
       return 'different';
     }
 
-    // Процессор
+    // Для процессора используем рейтинг
     if (lowerName.includes('процессор')) {
       const scores = values.map(v => getCpuScore(v));
       if (scores.some(isNaN)) return null;
-      const bestScore = Math.max(...scores);
-      const worstScore = Math.min(...scores);
+      const maxScore = Math.max(...scores);
+      const minScore = Math.min(...scores);
       const currentScore = getCpuScore(currentValue);
-      if (currentScore === bestScore && bestScore !== worstScore) return 'best';
-      if (currentScore === worstScore && bestScore !== worstScore) return 'worst';
+      if (currentScore === maxScore && maxScore !== minScore) return 'best';
+      if (currentScore === minScore && maxScore !== minScore) return 'worst';
       return 'different';
     }
 
-    // Связь и подключение (специальная оценка)
-    if (lowerName.includes('связь') || lowerName === 'связь и подключение') {
-      const scores = values.map(v => getConnectivityScore(v));
+    // Для экрана – специальная оценка
+    if (lowerName.includes('экран')) {
+      const scores = values.map(v => getScreenScore(v));
       if (scores.some(isNaN)) return null;
-      const bestScore = Math.max(...scores);
-      const worstScore = Math.min(...scores);
-      const currentScore = getConnectivityScore(currentValue);
-      if (currentScore === bestScore && bestScore !== worstScore) return 'best';
-      if (currentScore === worstScore && bestScore !== worstScore) return 'worst';
+      const maxScore = Math.max(...scores);
+      const minScore = Math.min(...scores);
+      const currentScore = getScreenScore(currentValue);
+      if (currentScore === maxScore && maxScore !== minScore) return 'best';
+      if (currentScore === minScore && maxScore !== minScore) return 'worst';
       return 'different';
     }
 
-    // Числовые характеристики
-    if (isNumericSpec(specName)) {
-      const numericValues = values.map(v => extractNumeric(v, specName));
-      if (numericValues.some(isNaN)) return null;
-      const isPrice = lowerName.includes('цен') || lowerName === 'цена';
-      if (isPrice) {
-        const minVal = Math.min(...numericValues);
-        const maxVal = Math.max(...numericValues);
-        if (minVal === maxVal) return null;
-        if (numericValues[productIndex] === minVal) return 'best';
-        if (numericValues[productIndex] === maxVal) return 'worst';
-      } else {
-        const maxVal = Math.max(...numericValues);
-        const minVal = Math.min(...numericValues);
-        if (minVal === maxVal) return null;
-        if (numericValues[productIndex] === maxVal) return 'best';
-        if (numericValues[productIndex] === minVal) return 'worst';
-      }
+    // Для памяти, камеры, аккумулятора, связи – числовые баллы
+    if (lowerName.includes('память') || lowerName.includes('камер') || lowerName.includes('аккумулятор') || lowerName.includes('связь')) {
+      let scores;
+      if (lowerName.includes('память')) scores = values.map(v => getMemoryScore(v));
+      else if (lowerName.includes('камер')) scores = values.map(v => getCameraScore(v));
+      else if (lowerName.includes('аккумулятор')) scores = values.map(v => getBatteryScore(v));
+      else scores = values.map(v => getConnectivityScore(v));
+
+      if (scores.some(isNaN)) return null;
+      const maxScore = Math.max(...scores);
+      const minScore = Math.min(...scores);
+      const currentScore = scores[idx];
+      if (currentScore === maxScore && maxScore !== minScore) return 'best';
+      if (currentScore === minScore && maxScore !== minScore) return 'worst';
       return 'different';
     }
 
-    // Для нечисловых (например, если остались)
+    // Для остальных (нечисловых) – просто отличие
     if (values.some(v => v !== values[0])) {
       return 'different';
     }
     return null;
   };
 
+  // --------------------------------------------------------------
+  // 9. Построение таблицы
+  // --------------------------------------------------------------
   const renderComparisonTable = () => {
     if (loading) return <div>Загрузка...</div>;
     if (selectedProducts.length === 0) return <div>Выбранные товары не найдены.</div>;
@@ -259,7 +334,7 @@ const ComparePage = () => {
                     {selectedProducts.map((product, idx) => {
                       const value = values[idx];
                       let cellStyleExtended = { ...cellStyle };
-                      const status = getCellStyle(specName, values, value, idx);
+                      const status = getComparisonStatus(specName, values, value, idx);
                       if (status === 'best') {
                         cellStyleExtended = { ...cellStyleExtended, backgroundColor: '#d4edda', color: '#155724' };
                       } else if (status === 'worst') {
