@@ -6,7 +6,7 @@ import ProductCard from '../components/ProductCard/ProductCard';
 import ProductForm from '../components/ProductForm/ProductForm';
 import AuthForm from '../components/Auth/AuthForm';
 
-const CatalogPage = ({ user }) => {   // <-- получаем user из пропсов (из App.jsx)
+const CatalogPage = ({ user }) => {
   const [products, setProducts] = useState([]);
   const [selectedIds, setSelectedIds] = useState(() => {
     const saved = localStorage.getItem('selectedIds');
@@ -113,15 +113,17 @@ const CatalogPage = ({ user }) => {   // <-- получаем user из проп
 
   const handleAuthSuccess = (loggedInUser) => {
     setShowAuth(false);
-    // Пользователь уже обновится в App.jsx через пропс, но для локального обновления можно вызвать navigate(0) или просто закрыть окно
-    window.location.reload(); // проще перезагрузить, чтобы App.jsx подхватил нового пользователя
+    window.location.reload();
   };
 
   return (
     <div>
-      <button onClick={handleAddClick} style={{ marginBottom: '20px' }}>
-        + Добавить товар
-      </button>
+      {/* Кнопка добавления товара видна только администратору */}
+      {user && user.role === 'admin' && (
+        <button onClick={handleAddClick} style={{ marginBottom: '20px' }}>
+          + Добавить товар
+        </button>
+      )}
 
       <div style={{ marginBottom: '20px' }}>
         <span>Выбрано: {selectedIds.length} товаров</span>
