@@ -50,6 +50,7 @@ const ComparePage = () => {
     }
   }, [selectedIds, navigate]);
 
+  // Рейтинг процессоров
   const getCpuScore = (cpuString) => {
     if (!cpuString) return 0;
     const str = cpuString.toLowerCase();
@@ -73,11 +74,30 @@ const ComparePage = () => {
     return 40;
   };
 
+  // Оценка связи и подключения (чем больше, тем лучше)
+  const getConnectivityScore = (value) => {
+    if (!value) return 0;
+    const str = value.toString().toLowerCase();
+    let score = 0;
+    if (str.includes('5g')) score += 10;
+    if (str.includes('4g')) score += 5;
+    if (str.includes('3g')) score += 2;
+    if (str.includes('esim')) score += 8;
+    if (str.includes('nfc')) score += 3;
+    if (str.includes('wi-fi 6')) score += 4;
+    if (str.includes('wi-fi 5')) score += 2;
+    if (str.includes('bluetooth 5.3')) score += 3;
+    if (str.includes('bluetooth 5.2')) score += 2;
+    return score;
+  };
+
+  // Извлечение числового значения с учётом специфики
   const extractNumeric = (value, specName) => {
     if (!value || value === '—') return NaN;
     const str = value.toString().toLowerCase();
     const lowerName = specName.toLowerCase();
 
+    // Для камеры: суммируем все числа
     if (lowerName.includes('камер')) {
       const numbers = str.match(/\d+/g);
       if (numbers) {
@@ -86,21 +106,32 @@ const ComparePage = () => {
       return NaN;
     }
 
+    // Для памяти (ОЗУ/ПЗУ) – извлекаем ОЗУ (первое число) и ПЗУ (второе), можно вернуть комбинированное значение
+    if (lowerName.includes('память') && str.includes('гб')) {
+      const numbers = str.match(/\d+/g);
+      if (numbers && numbers.length >= 2) {
+        // Возвращаем ОЗУ * 1000 + ПЗУ (чтобы ОЗУ было приоритетнее)
+        return parseInt(numbers[0], 10) * 1000 + parseInt(numbers[1], 10);
+      }
+      if (numbers && numbers.length === 1) {
+        return parseInt(numbers[0], 10);
+      }
+      return NaN;
+    }
+
+    // Для аккумулятора (мАч)
     if (lowerName.includes('аккумулятор') || str.includes('мач')) {
       const match = str.match(/(\d+)\s*ма/i);
       return match ? parseInt(match[1], 10) : NaN;
     }
 
+    // Для частоты обновления экрана (Гц)
     if (lowerName.includes('экран') && str.includes('гц')) {
       const match = str.match(/(\d+)\s*гц/i);
       return match ? parseInt(match[1], 10) : NaN;
     }
 
-    if (lowerName.includes('память') || str.includes('гб')) {
-      const match = str.match(/(\d+)\s*гб/i);
-      return match ? parseInt(match[1], 10) : NaN;
-    }
-
+    // Для диагонали экрана (дюймы)
     if (lowerName.includes('экран') && str.includes('"')) {
       const match = str.match(/(\d+\.?\d*)\s*"/);
       if (match) return parseFloat(match[1]);
@@ -108,6 +139,7 @@ const ComparePage = () => {
       return match2 ? parseFloat(match2[1]) : NaN;
     }
 
+    // Универсальное: первое число
     const numMatch = str.match(/(\d+(?:\.\d+)?)/);
     return numMatch ? parseFloat(numMatch[1]) : NaN;
   };
@@ -124,6 +156,7 @@ const ComparePage = () => {
   const getCellStyle = (specName, values, currentValue, productIndex) => {
     const lowerName = specName.toLowerCase();
 
+    // Операционная система
     if (lowerName === 'операционная система') {
       const uniqueValues = [...new Set(values)];
       if (uniqueValues.length === 1) return null;
@@ -131,6 +164,7 @@ const ComparePage = () => {
       return 'different';
     }
 
+    // Процессор
     if (lowerName.includes('процессор')) {
       const scores = values.map(v => getCpuScore(v));
       if (scores.some(isNaN)) return null;
@@ -142,6 +176,19 @@ const ComparePage = () => {
       return 'different';
     }
 
+    // Связь и подключение (специальная оценка)
+    if (lowerName.includes('связь') || lowerName === 'связь и подключение') {
+      const scores = values.map(v => getConnectivityScore(v));
+      if (scores.some(isNaN)) return null;
+      const bestScore = Math.max(...scores);
+      const worstScore = Math.min(...scores);
+      const currentScore = getConnectivityScore(currentValue);
+      if (currentScore === bestScore && bestScore !== worstScore) return 'best';
+      if (currentScore === worstScore && bestScore !== worstScore) return 'worst';
+      return 'different';
+    }
+
+    // Числовые характеристики
     if (isNumericSpec(specName)) {
       const numericValues = values.map(v => extractNumeric(v, specName));
       if (numericValues.some(isNaN)) return null;
@@ -162,6 +209,7 @@ const ComparePage = () => {
       return 'different';
     }
 
+    // Для нечисловых (например, если остались)
     if (values.some(v => v !== values[0])) {
       return 'different';
     }
