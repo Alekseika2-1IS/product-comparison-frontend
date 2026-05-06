@@ -1,7 +1,7 @@
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import RatingStars from './RatingStars';
-import { setRating } from '../../services/ratingsService';
+import { getRating, getUserRating, setRating } from '../../services/ratingsService';
 import { getCurrentUser } from '../../services/authService';
 
 jest.mock('../../services/ratingsService');
@@ -11,32 +11,30 @@ describe('RatingStars', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     getCurrentUser.mockReturnValue(null);
+    getRating.mockResolvedValue(4.2); // важно: возвращаем число
+    getUserRating.mockResolvedValue(null);
     setRating.mockResolvedValue();
   });
 
-  test('отображает звёзды (readonly)', () => {
-    // Передаём rating, чтобы компонент не пытался загружать рейтинг асинхронно
-    render(<RatingStars productId="1" rating={4.5} readonly={true} />);
-    // Проверяем, что есть хотя бы один элемент со звездой
-    const stars = screen.getAllByText('★');
-    expect(stars.length).toBeGreaterThan(0);
+  test('отображает звёзды', async () => {
+    render(<RatingStars productId="1" readonly={true} />);
+    // Ждём, пока компонент загрузит рейтинг и отрисует звёзды
+    await waitFor(() => {
+      const stars = screen.getAllByText('★');
+      expect(stars.length).toBeGreaterThan(0);
+    });
   });
 
-  test('при клике на звезду (авторизован) вызывается setRating и onRatingUpdate', async () => {
+  test('при клике на звезду (авторизован) вызывается setRating', async () => {
     getCurrentUser.mockReturnValue({ id: 'user1' });
     const onRatingUpdate = jest.fn();
-    // Передаём rating=0, чтобы компонент не загружал данные сам и не вызывал ошибок
-    render(<RatingStars productId="1" rating={0} onRatingUpdate={onRatingUpdate} readonly={false} />);
+    render(<RatingStars productId="1" onRatingUpdate={onRatingUpdate} readonly={false} />);
     
+    await waitFor(() => screen.getAllByText('★')); // ждём появления звёзд
     const stars = screen.getAllByText('★');
-    // Кликаем на первую звезду (индекс 0)
     fireEvent.click(stars[0]);
     
     expect(setRating).toHaveBeenCalledWith('1', 'user1', 1);
-    // Ждём асинхронных вызовов
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 100));
-    });
-    expect(onRatingUpdate).toHaveBeenCalled();
+    await waitFor(() => expect(onRatingUpdate).toHaveBeenCalled());
   });
 });
